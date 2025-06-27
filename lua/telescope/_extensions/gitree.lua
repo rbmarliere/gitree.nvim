@@ -1,10 +1,8 @@
-local has_telescope, telescope = pcall(require, "telescope")
-if not has_telescope then
-	error("This extension requires 'telescope.nvim'. (https://github.com/nvim-telescope/telescope.nvim)")
-end
+local config = require("gitree.config")
 
-return telescope.register_extension({
+return require("telescope").register_extension({
+	setup = config.setup,
 	exports = {
-		gitree = require("telescope._extensions.gitree.picker").find,
+		list = require("gitree.picker").list,
 	},
 })
