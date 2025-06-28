@@ -28,6 +28,8 @@ return {
 			extensions = {
 				gitree = {
 					log_level = "info",
+					on_select = function()
+					end,
 				},
 			},
 		})

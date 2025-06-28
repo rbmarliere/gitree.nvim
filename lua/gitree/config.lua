@@ -4,6 +4,7 @@ M.options = {}
 
 local defaults = {
 	log_level = "info",
+	on_select = nil,
 }
 
 local set_log_level = function(log_level)
