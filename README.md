@@ -30,6 +30,9 @@ return {
 					log_level = "info",
 					on_select = function()
 					end,
+					on_add = function()
+						vim.system({ "git", "submodule", "update", "--init", "--recursive" }):wait()
+					end,
 				},
 			},
 		})

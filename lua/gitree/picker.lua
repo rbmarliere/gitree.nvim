@@ -2,6 +2,7 @@ local M = {}
 
 local actions = require("gitree.actions")
 local git = require("gitree.git")
+local state = require("gitree.state")
 
 local telescope_actions = require("telescope.actions")
 local telescope_config = require('telescope.config')
@@ -10,23 +11,25 @@ local telescope_finders = require("telescope.finders")
 local telescope_pickers = require("telescope.pickers")
 local telescope_utils = require("telescope.utils")
 
+local Path = require("plenary.path")
+
 M.list = function(opts)
 	opts = opts or {}
-	local results = git.get_worktrees()
-	if not results then
+	state.worktrees = git.get_worktrees()
+	if not state.worktrees then
 		return
 	end
+	state.main_worktree_path = Path:new(state.worktrees[1].path)
 
 	opts.path_display = function(_, path)
-		local main_wt = results[1].path
-		if path == main_wt then
+		if path == state.main_worktree_path:absolute() then
 			return path
 		end
-		return string.format("%s", path:sub(#main_wt + 2))
+		return string.format("%s", path:sub(#state.main_worktree_path:absolute() + 2))
 	end
 
 	local path_width = 0
-	for _, tree in ipairs(results) do
+	for _, tree in ipairs(state.worktrees) do
 		if #tree.path > path_width then
 			path_width = #tree.path + 4
 		end
@@ -57,7 +60,7 @@ M.list = function(opts)
 		.new(opts, {
 			prompt_title = "Git Worktrees",
 			finder = telescope_finders.new_table({
-				results = results,
+				results = state.worktrees,
 				entry_maker = function(entry)
 					entry.value = entry.path
 					entry.ordinal = entry.path
@@ -68,6 +71,7 @@ M.list = function(opts)
 			sorter = telescope_config.values.generic_sorter(opts),
 			attach_mappings = function(prompt_bufnr, map)
 				telescope_actions.select_default:replace(actions.select)
+				map({ "i", "n" }, "<m-a>", actions.add)
 				return true
 			end,
 		})

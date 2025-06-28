@@ -2,6 +2,9 @@ local M = {}
 
 local cmd = require("gitree.cmd")
 local log = require("gitree.log")
+local state = require("gitree.state")
+
+local Path = require("plenary.path")
 
 M.is_bare_repository = function(path)
 	local ret, stdout, stderr = cmd.git("-C", path, "rev-parse", "--is-bare-repository")
@@ -38,7 +41,7 @@ M.get_worktrees = function()
 	local stdout = M.list_worktrees()
 	local trees = {}
 	local tree = {
-		main = true,  -- first one is always the main worktree
+		main = true, -- first one is always the main worktree
 		path = "",
 		head = "",
 		branch = "(bare)",
@@ -66,7 +69,7 @@ M.get_worktrees = function()
 			end
 			local branch = string.match(line, "^branch refs/heads/(.+)$")
 			if branch then
-				tree.branch = string.format("[%s]", branch)
+				tree.branch = string.format("%s", branch)
 			elseif string.find(line, "^detached$") then
 				tree.branch = "(detached HEAD)"
 			end
@@ -74,6 +77,75 @@ M.get_worktrees = function()
 	end
 
 	return trees
+end
+
+M.has_branch = function(branch)
+	local ret, stdout, stderr = cmd.git("branch", "--list", branch)
+	assert(ret == 0)
+	assert(stdout ~= nil)
+	return stdout[1] ~= nil
+end
+
+M.add_worktree = function(opts)
+	log.debug(opts)
+	local path = opts.path or nil
+	local commit = opts.commit or nil
+	local branch = opts.branch or nil
+	local upstream = opts.upstream or nil
+	local cmdline = { "worktree", "add" }
+
+	if path == nil then
+		log.warn("New worktree path can't be nil")
+		return false
+	else
+		path = Path:new(opts.path)
+	end
+	if path:absolute() == state.main_worktree_path:absolute() then
+		log.warn("New worktree path can't be the same of the main worktree")
+		return false
+	end
+	if path:absolute():sub(1, #state.main_worktree_path:absolute()) ~= state.main_worktree_path:absolute() then
+		log.warn("New worktree path is not within the main worktree")
+		return false
+	end
+	if path:exists() then
+		log.warn("New worktree path already exists")
+		return false
+	end
+
+	if branch == nil and commit == nil then
+		log.warn("Need a branch or commit to create new worktree")
+		return false
+	end
+
+	if branch == nil then
+		table.insert(cmdline, "--detach")
+		table.insert(cmdline, path:absolute())
+		table.insert(cmdline, commit)
+	else
+		for _, tree in ipairs(state.worktrees) do
+			log.debug(tree)
+			if tree.branch == branch then
+				log.warn("Branch", branch, "already in use in", tree.path)
+				return false
+			end
+		end
+		if M.has_branch(branch) then
+			table.insert(cmdline, path:absolute())
+			table.insert(cmdline, branch)
+		else
+			table.insert(cmdline, "-b")
+			table.insert(cmdline, branch)
+			table.insert(cmdline, path:absolute())
+			if upstream ~= nil then
+				table.insert(cmdline, "--track")
+				table.insert(cmdline, upstream)
+			end
+		end
+	end
+
+	local ret, stdout, stderr = cmd.git(cmdline)
+	return ret == 0
 end
 
 return M

@@ -5,8 +5,11 @@ local log = require("gitree.log")
 local job = require("plenary.job")
 
 local cmd = function(cmd, ...)
-	log.debug("running:", cmd, ...)
 	local args = { ... }
+	if #args == 1 and type(args[1]) == "table" then
+		args = args[1]
+	end
+	log.debug("running:", cmd, ...)
 	local stderr = {}
 	local stdout, ret = job:new({
 		command = cmd,
@@ -23,7 +26,7 @@ local cmd = function(cmd, ...)
 				log.error("`", cmd, args, "` exited with", ret)
 			end
 		end,
-	}):sync()
+	}):sync(20000)
 	return ret, stdout, stderr
 end
 

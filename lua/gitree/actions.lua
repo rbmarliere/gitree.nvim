@@ -1,35 +1,134 @@
 local M = {}
 
 local config = require("gitree.config")
+local git = require("gitree.git")
 local log = require("gitree.log")
+local state = require("gitree.state")
+local utils = require("gitree.utils")
 
-local telescope_actions = require("telescope.actions")
 local telescope_action_state = require("telescope.actions.state")
+local telescope_actions = require("telescope.actions")
+local telescope_builtin = require("telescope.builtin")
 
-M.move = function(prompt_bufnr)
+local change_dir = function(worktree_path)
+	vim.cmd("cd " .. worktree_path)
+	vim.cmd("clearjumps")
+	log.info("Changed directory to " .. worktree_path)
 end
 
-M.remove = function(prompt_bufnr)
+local add_worktree = function()
+	state.new_worktree_opts.path = utils.ask_input("Path to worktree > ", state.main_worktree_path:absolute())
+	log.info("Adding worktree...")
+	vim.defer_fn(function()
+		if git.add_worktree(state.new_worktree_opts) then
+			change_dir(state.new_worktree_opts.path)
+			state.new_worktree_opts = nil
+			if config.options.on_add and type(config.options.on_add) == "function" then
+				config.options.on_add()
+			end
+		end
+	end, 10)
 end
 
-M.add = function(prompt_bufnr)
+M.move = function(prompt_bufnr) end
+
+M.remove = function(prompt_bufnr) end
+
+local add_from_local_tracking_branch = function(prompt_bufnr)
+	telescope_actions.close(prompt_bufnr)
+	state.new_worktree_opts.upstream = telescope_action_state.get_selected_entry().value or nil
+	if state.new_worktree_opts.upstream == nil then
+		log.warn("No upstream branch selected")
+		return
+	end
+	add_worktree()
+end
+
+local add_from_commit = function(prompt_bufnr)
+	telescope_actions.close(prompt_bufnr)
+	state.new_worktree_opts.commit = telescope_action_state.get_selected_entry().value or nil
+	if state.new_worktree_opts.commit == nil then
+		log.warn("No commit selected")
+		return
+	end
+	if utils.confirm("Create a new branch?") then
+		state.new_worktree_opts.branch = utils.ask_input("New branch name > ", "")
+		if utils.confirm("Track an upstream?") then
+			local opts = {}
+			opts.attach_mappings = function(prompt_bufnr, map)
+				telescope_actions.select_default:replace(add_from_local_tracking_branch)
+				return true
+			end
+			opts.pattern = nil
+			return telescope_builtin.git_branches(opts)
+		end
+	end
+	add_worktree()
+end
+
+local add_from_local_branch = function(prompt_bufnr)
+	telescope_actions.close(prompt_bufnr)
+	state.new_worktree_opts.branch = telescope_action_state.get_selected_entry().value or nil
+	if state.new_worktree_opts.branch == nil then
+		log.warn("No local branch selected")
+		return
+	end
+	add_worktree()
+end
+
+local add_from_remote_branch = function(prompt_bufnr)
+	telescope_actions.close(prompt_bufnr)
+	state.new_worktree_opts.upstream = telescope_action_state.get_selected_entry().value or nil
+	if state.new_worktree_opts.upstream == nil then
+		log.warn("No remote branch selected")
+		return
+	end
+	state.new_worktree_opts.branch = utils.ask_input("New branch name > ", "")
+	add_worktree()
+end
+
+M.add = function()
+	state.new_worktree_opts = {}
+	local opts = {}
+
+	if utils.confirm("Checkout a commit? (otherwise, an existing branch)") then
+		opts.attach_mappings = function(prompt_bufnr, map)
+			telescope_actions.select_default:replace(add_from_commit)
+			return true
+		end
+		return telescope_builtin.git_commits(opts)
+	end
+
+	if utils.confirm("Checkout a remote branch?") then
+		opts.attach_mappings = function(prompt_bufnr, map)
+			telescope_actions.select_default:replace(add_from_remote_branch)
+			return true
+		end
+		opts.pattern = "refs/remotes/"
+		return telescope_builtin.git_branches(opts)
+	end
+
+	opts.attach_mappings = function(prompt_bufnr, map)
+		telescope_actions.select_default:replace(add_from_local_branch)
+		return true
+	end
+	opts.pattern = "refs/heads/"
+	return telescope_builtin.git_branches(opts)
 end
 
 M.select = function(prompt_bufnr)
 	telescope_actions.close(prompt_bufnr)
-	local entry = telescope_action_state.get_selected_entry()
-	if entry == nil then
+	local worktree_path = telescope_action_state.get_selected_entry().ordinal or nil
+	if worktree_path == nil then
 		log.warn("No worktree selected")
 		return
 	end
 	log.info("Selecting worktree...")
 	vim.defer_fn(function()
-		vim.cmd("cd " .. entry.ordinal)
-		vim.cmd("clearjumps")
+		change_dir(worktree_path)
 		if config.options.on_select and type(config.options.on_select) == "function" then
 			config.options.on_select()
 		end
-		log.info("Changed directory to " .. entry.ordinal)
 	end, 10)
 end
 
