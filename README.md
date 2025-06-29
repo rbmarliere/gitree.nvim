@@ -39,3 +39,15 @@ return {
 	end,
 }
 ```
+
+### Usage
+
+After opening the list() picker, use the default action key maps:
+
+`<CR>` -> select a worktree
+
+`<m-a>` -> add a worktree
+
+`<m-r>` -> remove the worktree under the cursor
+
+`<m-m>` -> move the worktree under the cursor

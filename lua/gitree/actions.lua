@@ -17,7 +17,13 @@ local change_dir = function(worktree_path)
 end
 
 local add_worktree = function()
-	state.new_worktree_opts.path = utils.ask_input("Path to worktree > ", state.main_worktree_path:absolute())
+	local suffix = state.main_worktree_path:absolute() .. "/"
+	if state.new_worktree_opts.remote and state.new_worktree_opts.upstream then
+		suffix = string.format("%s%s", suffix, state.new_worktree_opts.upstream)
+	elseif state.new_worktree_opts.branch then
+		suffix = string.format("%s%s", suffix, state.new_worktree_opts.branch)
+	end
+	state.new_worktree_opts.path = utils.ask_input("Path to worktree > ", suffix)
 	log.info("Adding worktree...")
 	vim.defer_fn(function()
 		if git.add_worktree(state.new_worktree_opts) then
@@ -44,7 +50,7 @@ M.move = function(prompt_bufnr)
 	if tree.path == vim.loop.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
-	local new_path = utils.ask_input("New path to worktree > ", state.main_worktree_path:absolute())
+	local new_path = utils.ask_input("New path to worktree > ", tree.path)
 	log.info("Moving worktree...")
 	vim.defer_fn(function()
 		if git.move_worktree(tree, new_path) then
@@ -54,8 +60,6 @@ M.move = function(prompt_bufnr)
 					log.info("Renamed branch")
 				end
 			end
-		else
-			log.info("Did not move worktree")
 		end
 	end, 10)
 end
@@ -89,8 +93,6 @@ M.remove = function(prompt_bufnr)
 			else
 				log.info("Removed worktree")
 			end
-		else
-			log.info("Did not remove worktree")
 		end
 	end, 10)
 end
@@ -147,13 +149,20 @@ local add_from_remote_branch = function(prompt_bufnr)
 		log.warn("No remote branch selected")
 		return
 	end
+	state.new_worktree_opts.remote = true
 	state.new_worktree_opts.upstream = entry.value
-	state.new_worktree_opts.branch = utils.ask_input("New branch name > ", "")
+	state.new_worktree_opts.branch = utils.ask_input("New branch name > ", string.gsub(entry.value, "/", "_"))
 	add_worktree()
 end
 
 M.add = function()
-	state.new_worktree_opts = {}
+	state.new_worktree_opts = {
+		remote = false,
+		upstream = nil,
+		branch = nil,
+		path = nil,
+		commit = nil,
+	}
 	local opts = {}
 
 	if utils.confirm("Checkout a commit? (otherwise, an existing branch)") then
