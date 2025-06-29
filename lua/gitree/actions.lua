@@ -34,11 +34,14 @@ M.move = function(prompt_bufnr) end
 
 M.remove = function(prompt_bufnr)
 	local tree = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if tree == nil then
 		log.warn("No worktree selected")
 		return
 	end
+	if not utils.confirm(string.format("Remove worktree %s?", tree.path)) then
+		return
+	end
+	telescope_actions.close(prompt_bufnr)
 	if tree.path == state.main_worktree_path:absolute() then
 		log.warn("Refusing to remove main worktree")
 		return
