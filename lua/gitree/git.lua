@@ -3,6 +3,7 @@ local M = {}
 local cmd = require("gitree.cmd")
 local log = require("gitree.log")
 local state = require("gitree.state")
+local utils = require("gitree.utils")
 
 local Path = require("plenary.path")
 
@@ -42,9 +43,10 @@ M.get_worktrees = function()
 	local trees = {}
 	local tree = {
 		main = true, -- first one is always the main worktree
+		label = "(bare)",
 		path = "",
 		head = "",
-		branch = "(bare)",
+		branch = "",
 	}
 	local i = 1
 
@@ -53,6 +55,7 @@ M.get_worktrees = function()
 			table.insert(trees, i, tree)
 			tree = {
 				main = false,
+				label = "",
 				path = "",
 				head = "",
 				branch = "",
@@ -70,11 +73,14 @@ M.get_worktrees = function()
 			local branch = string.match(line, "^branch refs/heads/(.+)$")
 			if branch then
 				tree.branch = string.format("%s", branch)
+				tree.label = string.format("[%s]", branch)
 			elseif string.find(line, "^detached$") then
-				tree.branch = "(detached HEAD)"
+				tree.label = "(detached HEAD)"
 			end
 		end
 	end
+
+	log.debug(trees)
 
 	return trees
 end
@@ -145,6 +151,22 @@ M.add_worktree = function(opts)
 	end
 
 	local ret, stdout, stderr = cmd.git(cmdline)
+	return ret == 0
+end
+
+M.delete_branch = function(branch)
+	local ret, stdout, stderr = cmd.git("branch", "-D", branch)
+	return ret == 0
+end
+
+M.remove_worktree = function(path)
+	local cmdline = { "worktree", "remove", path }
+	local ret, stdout, stderr = cmd.git(cmdline)
+	if ret ~= 0 and utils.confirm("Unable to remove, force? (might contain submodules or uncommitted changes)") then
+		table.insert(cmdline, "--force")
+		ret, stdout, stderr = cmd.git(cmdline)
+		return ret == 0
+	end
 	return ret == 0
 end
 

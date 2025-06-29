@@ -52,7 +52,7 @@ M.list = function(opts)
 		return displayer({
 			{ path, "TelescopeResultsIdentifier" },
 			{ entry.head },
-			{ entry.branch },
+			{ entry.label },
 		})
 	end
 
@@ -72,6 +72,7 @@ M.list = function(opts)
 			attach_mappings = function(prompt_bufnr, map)
 				telescope_actions.select_default:replace(actions.select)
 				map({ "i", "n" }, "<m-a>", actions.add)
+				map({ "i", "n" }, "<m-r>", actions.remove)
 				return true
 			end,
 		})

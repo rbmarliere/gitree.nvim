@@ -32,7 +32,41 @@ end
 
 M.move = function(prompt_bufnr) end
 
-M.remove = function(prompt_bufnr) end
+M.remove = function(prompt_bufnr)
+	telescope_actions.close(prompt_bufnr)
+	local path = telescope_action_state.get_selected_entry().ordinal or nil
+	if path == nil then
+		log.warn("No worktree selected")
+		return
+	end
+	if path == state.main_worktree_path:absolute() then
+		log.warn("Refusing to remove main worktree")
+		return
+	end
+	if path == vim.loop.cwd() then
+		change_dir(state.main_worktree_path:absolute())
+	end
+	log.info("Removing worktree...")
+	vim.defer_fn(function()
+		if git.remove_worktree(path) then
+			local branch
+			for _, tree in ipairs(state.worktrees) do
+				if tree.path == path then
+					branch = tree.branch
+				end
+			end
+			if branch ~= "" and utils.confirm(string.format("Removed worktree, delete branch %s?", branch)) then
+				if git.delete_branch(branch) then
+					log.info("Deleted branch")
+				end
+			else
+				log.info("Removed worktree")
+			end
+		else
+			log.info("Did not remove worktree")
+		end
+	end, 10)
+end
 
 local add_from_local_tracking_branch = function(prompt_bufnr)
 	telescope_actions.close(prompt_bufnr)
