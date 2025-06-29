@@ -92,6 +92,13 @@ M.has_branch = function(branch)
 	return stdout[1] ~= nil
 end
 
+M.has_submodule = function(tree)
+	local ret, stdout, stderr = cmd.git("-C", tree.path, "submodule", "status")
+	assert(ret == 0)
+	assert(stdout ~= nil)
+	return stdout[1] ~= nil
+end
+
 M.add_worktree = function(opts)
 	log.debug(opts)
 	local path = opts.path or nil
@@ -104,18 +111,10 @@ M.add_worktree = function(opts)
 		log.warn("New worktree path can't be nil")
 		return false
 	else
-		path = Path:new(opts.path)
+		path = Path:new(path)
 	end
-	if path:absolute() == state.main_worktree_path:absolute() then
-		log.warn("New worktree path can't be the same of the main worktree")
-		return false
-	end
-	if path:absolute():sub(1, #state.main_worktree_path:absolute()) ~= state.main_worktree_path:absolute() then
-		log.warn("New worktree path is not within the main worktree")
-		return false
-	end
-	if path:exists() then
-		log.warn("New worktree path already exists")
+
+	if not utils.is_worktree_path_valid(path) then
 		return false
 	end
 
@@ -167,6 +166,57 @@ M.remove_worktree = function(path)
 		ret, stdout, stderr = cmd.git(cmdline)
 		return ret == 0
 	end
+	return ret == 0
+end
+
+M.move_worktree = function(tree, dest)
+	if dest == nil then
+		log.warn("New worktree path can't be nil")
+		return false
+	else
+		dest = Path:new(dest)
+	end
+
+	if not utils.is_worktree_path_valid(dest) then
+		return false
+	end
+
+	local ret, stdout, stderr
+	if M.has_submodule(tree) then
+		if utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)") then
+			ret, stdout, stderr = cmd.git("-C", tree.path, "submodule", "deinit", "--all")
+			if not ret then
+				log.warn("Unable to deinit modules")
+				return false
+			end
+			ret = vim.fn.rename(tree.path, dest:absolute())
+			if not ret then
+				log.warn(string.format("Unable to rename directory %s to %s", tree.path, dest:absolute()))
+				return false
+			end
+			ret, stdout, stderr = cmd.git("-C", dest:absolute(), "worktree", "repair")
+			if not ret then
+				log.warn("Unable to repair worktree")
+				return false
+			end
+			ret, stdout, stderr = cmd.git("-C", dest:absolute(), "submodule", "update", "--init", "--recursive")
+			if not ret then
+				log.warn("Unable to re-init submodules")
+				return false
+			end
+			tree.path = dest:absolute()
+			return true
+		else
+			return false
+		end
+	else
+		ret, stdout, stderr = cmd.git("worktree", "move", tree.path, dest:absolute())
+		return ret == 0
+	end
+end
+
+M.rename_branch = function(old, new)
+	local ret, stdout, stderr = cmd.git("branch", "-m", old, new)
 	return ret == 0
 end
 

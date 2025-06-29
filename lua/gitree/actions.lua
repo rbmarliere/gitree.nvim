@@ -30,7 +30,35 @@ local add_worktree = function()
 	end, 10)
 end
 
-M.move = function(prompt_bufnr) end
+M.move = function(prompt_bufnr)
+	local tree = telescope_action_state.get_selected_entry()
+	telescope_actions.close(prompt_bufnr)
+	if tree == nil then
+		log.warn("No worktree selected")
+		return
+	end
+	if tree.path == state.main_worktree_path:absolute() then
+		log.warn("Refusing to move main worktree")
+		return
+	end
+	if tree.path == vim.loop.cwd() then
+		change_dir(state.main_worktree_path:absolute())
+	end
+	local new_path = utils.ask_input("New path to worktree > ", state.main_worktree_path:absolute())
+	log.info("Moving worktree...")
+	vim.defer_fn(function()
+		if git.move_worktree(tree, new_path) then
+			if tree.branch ~= "" and utils.confirm(string.format("Moved worktree, rename branch %s?", tree.branch)) then
+				local new_branch = utils.ask_input("New branch name > ", tree.branch)
+				if git.rename_branch(tree.branch, new_branch) then
+					log.info("Renamed branch")
+				end
+			end
+		else
+			log.info("Did not move worktree")
+		end
+	end, 10)
+end
 
 M.remove = function(prompt_bufnr)
 	local tree = telescope_action_state.get_selected_entry()
@@ -52,7 +80,9 @@ M.remove = function(prompt_bufnr)
 	log.info("Removing worktree...")
 	vim.defer_fn(function()
 		if git.remove_worktree(tree.path) then
-			if tree.branch ~= "" and utils.confirm(string.format("Removed worktree, delete branch %s?", tree.branch)) then
+			if
+				tree.branch ~= "" and utils.confirm(string.format("Removed worktree, delete branch %s?", tree.branch))
+			then
 				if git.delete_branch(tree.branch) then
 					log.info("Deleted branch")
 				end

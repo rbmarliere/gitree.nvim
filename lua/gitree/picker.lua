@@ -73,6 +73,7 @@ M.list = function(opts)
 				telescope_actions.select_default:replace(actions.select)
 				map({ "i", "n" }, "<m-a>", actions.add)
 				map({ "i", "n" }, "<m-r>", actions.remove)
+				map({ "i", "n" }, "<m-m>", actions.move)
 				return true
 			end,
 		})
