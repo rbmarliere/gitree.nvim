@@ -47,7 +47,7 @@ M.move = function(prompt_bufnr)
 		log.warn("Refusing to move main worktree")
 		return
 	end
-	if tree.path == vim.loop.cwd() then
+	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
 	local new_path = utils.ask_input("New path to worktree > ", tree.path)
@@ -78,7 +78,7 @@ M.remove = function(prompt_bufnr)
 		log.warn("Refusing to remove main worktree")
 		return
 	end
-	if tree.path == vim.loop.cwd() then
+	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
 	log.info("Removing worktree...")

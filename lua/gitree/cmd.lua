@@ -14,7 +14,7 @@ local cmd = function(cmd, ...)
 	local stdout, ret = job:new({
 		command = cmd,
 		args = args,
-		cwd = vim.loop.cwd(),
+		cwd = vim.uv.cwd(),
 		on_stderr = function(_, data)
 			table.insert(stderr, data)
 		end,

@@ -48,7 +48,7 @@ M.list = function(opts)
 
 	local make_display = function(entry)
 		local path = telescope_utils.transform_path(opts, entry.path)
-		if entry.path == vim.loop.cwd() then
+		if entry.path == vim.uv.cwd() then
 			path = string.format("[.] %s", path)
 		end
 		return displayer({
