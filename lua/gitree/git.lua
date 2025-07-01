@@ -42,8 +42,7 @@ M.get_worktrees = function()
 	local stdout = M.list_worktrees()
 	local trees = {}
 	local tree = {
-		main = true, -- first one is always the main worktree
-		label = "(bare)",
+		label = "(bare)", -- first one is always the main worktree
 		path = "",
 		head = "",
 		branch = "",
@@ -54,7 +53,6 @@ M.get_worktrees = function()
 		if line == "" then
 			table.insert(trees, i, tree)
 			tree = {
-				main = false,
 				label = "",
 				path = "",
 				head = "",
