@@ -3,6 +3,7 @@ local M = {}
 local actions = require("gitree.actions")
 local git = require("gitree.git")
 local state = require("gitree.state")
+local log = require("gitree.log")
 
 local telescope_actions = require("telescope.actions")
 local telescope_config = require('telescope.config')
@@ -28,10 +29,11 @@ M.list = function(opts)
 		return string.format("%s", path:sub(#state.main_worktree_path:absolute() + 2))
 	end
 
-	local path_width = 0
+	local path_width = #state.main_worktree_path:absolute() + 4
 	for _, tree in ipairs(state.worktrees) do
-		if #tree.path > path_width then
-			path_width = #tree.path + 4
+		local cur_path_len = #tree.path:sub(#state.main_worktree_path:absolute()) - 2
+		if cur_path_len > path_width then
+			path_width = #tree.path:sub(#state.main_worktree_path:absolute()) - 2
 		end
 	end
 
