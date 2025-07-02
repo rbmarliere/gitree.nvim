@@ -170,7 +170,15 @@ M.add = function()
 			telescope_actions.select_default:replace(add_from_commit)
 			return true
 		end
-		opts.git_command = { "git", "log", "--pretty=oneline", "--abbrev-commit", "--decorate=short" }
+		opts.git_command = {
+			"git",
+			"-C",
+			state.main_worktree_path:absolute(), -- grab all commits by targeting the main worktree
+			"log",
+			"--pretty=oneline",
+			"--abbrev-commit",
+			"--decorate=short", -- show tags for searching
+		}
 		return telescope_builtin.git_commits(opts)
 	end
 
