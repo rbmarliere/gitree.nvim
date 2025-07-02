@@ -170,6 +170,7 @@ M.add = function()
 			telescope_actions.select_default:replace(add_from_commit)
 			return true
 		end
+		opts.git_command = { "git", "log", "--pretty=oneline", "--abbrev-commit", "--decorate=short" }
 		return telescope_builtin.git_commits(opts)
 	end
 
