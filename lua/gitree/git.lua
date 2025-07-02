@@ -181,7 +181,11 @@ M.move_worktree = function(tree, dest)
 
 	local ret, stdout, stderr
 	if M.has_submodule(tree) then
-		if utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)") then
+		local ok = utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)")
+		if ok == nil then
+			return
+		end
+		if ok then
 			ret, stdout, stderr = cmd.git("-C", tree.path, "submodule", "deinit", "--all")
 			if not ret then
 				log.warn("Unable to deinit modules")

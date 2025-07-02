@@ -4,20 +4,23 @@ local log = require("gitree.log")
 local state = require("gitree.state")
 
 M.confirm = function(label)
-	local confirmed = vim.fn.input(string.format("%s [y|N]: ", label))
-	if string.sub(string.lower(confirmed), 0, 1) == "y" then
-		return true
-	end
-	return false
-end
-
-M.ask_input = function(prefix, suffix)
-	local new_path = vim.fn.input(prefix, suffix)
-	if new_path == "" then
-		log.warn("No valid input")
+	local ans = M.input(string.format("%s [y|N]: ", label), "")
+	if ans == nil then
 		return
 	end
-	return new_path
+	return string.sub(string.lower(ans), 0, 1) == "y"
+end
+
+M.input = function(prompt, default)
+	local ok, ans = pcall(vim.fn.input, {
+		prompt = prompt,
+		default = default,
+		cancelreturn = vim.NIL,
+	})
+	if not ok or ans == vim.NIL then
+		return
+	end
+	return ans
 end
 
 M.is_worktree_path_valid = function(path)

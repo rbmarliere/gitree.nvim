@@ -23,7 +23,10 @@ local add_worktree = function()
 	elseif state.new_worktree_opts.branch then
 		suffix = string.format("%s%s", suffix, state.new_worktree_opts.branch)
 	end
-	state.new_worktree_opts.path = utils.ask_input("Path to worktree > ", suffix)
+	state.new_worktree_opts.path = utils.input("Path to worktree > ", suffix)
+	if state.new_worktree_opts.path == nil then
+		return
+	end
 	log.info("Adding worktree...")
 	vim.defer_fn(function()
 		if git.add_worktree(state.new_worktree_opts) then
@@ -50,12 +53,26 @@ M.move = function(prompt_bufnr)
 	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
-	local new_path = utils.ask_input("New path to worktree > ", tree.path)
+	local new_path = utils.input("New path to worktree > ", tree.path)
+	if new_path == nil then
+		return
+	end
 	log.info("Moving worktree...")
 	vim.defer_fn(function()
 		if git.move_worktree(tree, new_path) then
-			if tree.branch ~= "" and utils.confirm(string.format("Moved worktree, rename branch %s?", tree.branch)) then
-				local new_branch = utils.ask_input("New branch name > ", tree.branch)
+			if tree.branch == "" then
+				log.info("Moved worktree")
+				return
+			end
+			local ok = utils.confirm(string.format("Moved worktree, rename branch %s?", tree.branch))
+			if ok == nil then
+				return
+			end
+			if ok then
+				local new_branch = utils.input("New branch name > ", tree.branch)
+				if new_branch == nil then
+					return
+				end
 				if git.rename_branch(tree.branch, new_branch) then
 					log.info("Renamed branch")
 				end
@@ -84,14 +101,18 @@ M.remove = function(prompt_bufnr)
 	log.info("Removing worktree...")
 	vim.defer_fn(function()
 		if git.remove_worktree(tree.path) then
-			if
-				tree.branch ~= "" and utils.confirm(string.format("Removed worktree, delete branch %s?", tree.branch))
-			then
+			if tree.branch == "" then
+				log.info("Removed worktree")
+				return
+			end
+			local ok = utils.confirm(string.format("Removed worktree, delete branch %s?", tree.branch))
+			if ok == nil then
+				return
+			end
+			if ok then
 				if git.delete_branch(tree.branch) then
 					log.info("Deleted branch")
 				end
-			else
-				log.info("Removed worktree")
 			end
 		end
 	end, 10)
@@ -116,9 +137,20 @@ local add_from_commit = function(prompt_bufnr)
 		return
 	end
 	state.new_worktree_opts.commit = entry.value
-	if utils.confirm("Create a new branch?") then
-		state.new_worktree_opts.branch = utils.ask_input("New branch name > ", "")
-		if utils.confirm("Track an upstream?") then
+	local ok = utils.confirm("Create a new branch?")
+	if ok == nil then
+		return
+	end
+	if ok then
+		state.new_worktree_opts.branch = utils.input("New branch name > ", "")
+		if state.new_worktree_opts.branch == nil then
+			return
+		end
+		ok = utils.confirm("Track an upstream?")
+		if ok == nil then
+			return
+		end
+		if ok then
 			local opts = {}
 			opts.attach_mappings = function(prompt_bufnr, map)
 				telescope_actions.select_default:replace(add_from_local_tracking_branch)
@@ -151,7 +183,10 @@ local add_from_remote_branch = function(prompt_bufnr)
 	end
 	state.new_worktree_opts.remote = true
 	state.new_worktree_opts.upstream = entry.value
-	state.new_worktree_opts.branch = utils.ask_input("New branch name > ", string.gsub(entry.value, "/", "_"))
+	state.new_worktree_opts.branch = utils.input("New branch name > ", string.gsub(entry.value, "/", "_"))
+	if state.new_worktree_opts.branch == nil then
+		return
+	end
 	add_worktree()
 end
 
@@ -165,7 +200,11 @@ M.add = function()
 	}
 	local opts = {}
 
-	if utils.confirm("Checkout a commit? (otherwise, an existing branch)") then
+	local ok = utils.confirm("Checkout a commit? (otherwise, an existing branch)")
+	if ok == nil then
+		return
+	end
+	if ok then
 		opts.attach_mappings = function(prompt_bufnr, map)
 			telescope_actions.select_default:replace(add_from_commit)
 			return true
@@ -182,7 +221,11 @@ M.add = function()
 		return telescope_builtin.git_commits(opts)
 	end
 
-	if utils.confirm("Checkout a remote branch?") then
+	ok = utils.confirm("Checkout a remote branch?")
+	if ok == nil then
+		return
+	end
+	if ok then
 		opts.attach_mappings = function(prompt_bufnr, map)
 			telescope_actions.select_default:replace(add_from_remote_branch)
 			return true
