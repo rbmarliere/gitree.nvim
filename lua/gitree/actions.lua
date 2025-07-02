@@ -152,7 +152,7 @@ local add_from_commit = function(prompt_bufnr)
 		end
 		if ok then
 			local opts = {}
-			opts.attach_mappings = function(prompt_bufnr, map)
+			opts.attach_mappings = function(_, _)
 				telescope_actions.select_default:replace(add_from_local_tracking_branch)
 				return true
 			end
@@ -205,7 +205,7 @@ M.add = function()
 		return
 	end
 	if ok then
-		opts.attach_mappings = function(prompt_bufnr, map)
+		opts.attach_mappings = function(_, _)
 			telescope_actions.select_default:replace(add_from_commit)
 			return true
 		end
@@ -226,7 +226,7 @@ M.add = function()
 		return
 	end
 	if ok then
-		opts.attach_mappings = function(prompt_bufnr, map)
+		opts.attach_mappings = function(_, _)
 			telescope_actions.select_default:replace(add_from_remote_branch)
 			return true
 		end
@@ -234,7 +234,7 @@ M.add = function()
 		return telescope_builtin.git_branches(opts)
 	end
 
-	opts.attach_mappings = function(prompt_bufnr, map)
+	opts.attach_mappings = function(_, _)
 		telescope_actions.select_default:replace(add_from_local_branch)
 		return true
 	end

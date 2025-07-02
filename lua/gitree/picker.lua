@@ -3,10 +3,9 @@ local M = {}
 local actions = require("gitree.actions")
 local git = require("gitree.git")
 local state = require("gitree.state")
-local log = require("gitree.log")
 
 local telescope_actions = require("telescope.actions")
-local telescope_config = require('telescope.config')
+local telescope_config = require("telescope.config")
 local telescope_entry_display = require("telescope.pickers.entry_display")
 local telescope_finders = require("telescope.finders")
 local telescope_pickers = require("telescope.pickers")
@@ -71,7 +70,7 @@ M.list = function(opts)
 				end,
 			}),
 			sorter = telescope_config.values.generic_sorter(opts),
-			attach_mappings = function(prompt_bufnr, map)
+			attach_mappings = function(_, map)
 				telescope_actions.select_default:replace(actions.select)
 				map({ "i", "n" }, "<m-a>", actions.add)
 				map({ "i", "n" }, "<m-r>", actions.remove)
