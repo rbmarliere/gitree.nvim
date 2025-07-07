@@ -1,4 +1,4 @@
-# telescope-gitree.nvim
+# gitree.nvim
 
 This is a simple extension to list, select, add, remove and move
 [git-worktrees], inspired by [git-worktree.nvim].
@@ -6,14 +6,25 @@ This is a simple extension to list, select, add, remove and move
 [git-worktrees]: https://git-scm.com/docs/git-worktree
 [git-worktree.nvim]: https://github.com/ThePrimeagen/git-worktree.nvim
 
-### Installation (lazy.nvim)
+### Default Configuration
+
+```lua
+{
+	log_level = "info",
+	backend = "telescope",
+	on_select = nil,
+	on_add = nil,
+}
+```
+
+### Installation for Telescope (lazy.nvim)
 
 ```lua
 return {
-	"https://git.marliere.net/rbm/telescope-gitree.nvim",
+	"https://git.marliere.net/rbm/gitree.nvim",
 	dependencies = {
-		"nvim-telescope/telescope.nvim",
 		"nvim-lua/plenary.nvim",
+		{ "nvim-telescope/telescope.nvim", branch = "0.1.x" },
 	},
 	keys = {
 		{
@@ -27,9 +38,6 @@ return {
 		require("telescope").setup({
 			extensions = {
 				gitree = {
-					log_level = "info",
-					on_select = function()
-					end,
 					on_add = function()
 						vim.system({ "git", "submodule", "update", "--init", "--recursive" }):wait()
 					end,
@@ -40,14 +48,40 @@ return {
 }
 ```
 
+### Installation for Snacks (lazy.nvim)
+
+```lua
+return {
+	"https://git.marliere.net/rbm/gitree.nvim",
+	dependencies = {
+		"nvim-lua/plenary.nvim",
+		"folke/snacks.nvim",
+	},
+	keys = {
+		{
+			"<Leader>gw",
+			function()
+				require("gitree.picker.snacks").list()
+			end,
+		},
+	},
+	opts = {
+		backend = "snacks",
+		on_add = function()
+			vim.system({ "git", "submodule", "update", "--init", "--recursive" }):wait()
+		end,
+	}
+}
+```
+
 ### Usage
 
 After opening the list() picker, use the default action key maps:
 
-`<CR>` -> select a worktree
+`<CR>` -> Select a worktree
 
-`<m-a>` -> add a worktree
+`<M-a>` -> Add a worktree
 
-`<m-r>` -> remove the worktree under the cursor
+`<M-r>` -> Remove the worktree under the cursor
 
-`<m-m>` -> move the worktree under the cursor
+`<M-m>` -> Move the worktree under the cursor

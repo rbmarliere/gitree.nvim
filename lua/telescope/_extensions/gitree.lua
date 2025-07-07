@@ -1,8 +1,6 @@
-local config = require("gitree.config")
-
 return require("telescope").register_extension({
-	setup = config.setup,
+	setup = require("gitree").setup,
 	exports = {
-		list = require("gitree.picker").list,
+		list = require("gitree.picker.telescope").list,
 	},
 })

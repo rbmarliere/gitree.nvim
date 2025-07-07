@@ -42,21 +42,34 @@ M.get_worktrees = function()
 	local stdout = M.list_worktrees()
 	local trees = {}
 	local tree = {
-		label = "(bare)", -- first one is always the main worktree
+		text = "",
 		path = "",
 		head = "",
 		branch = "",
+		branch_label = "",
 	}
 	local i = 1
 
 	for _, line in ipairs(stdout) do
 		if line == "" then
+			if i == 1 then
+				state.main_worktree_path = Path:new(tree.path)
+				tree.text = tree.path
+			else
+				tree.text = string.format("%s", tree.path:sub(#state.main_worktree_path:absolute() + 2))
+			end
+			local cur = ""
+			if tree.path == vim.uv.cwd() then
+				cur = "[.] "
+			end
+			tree.text = string.format("%s%s", cur, tree.text)
 			table.insert(trees, i, tree)
 			tree = {
-				label = "",
+				text = "",
 				path = "",
 				head = "",
 				branch = "",
+				branch_label = "(bare)", -- first one is always the main worktree
 			}
 			i = i + 1
 		else
@@ -71,15 +84,26 @@ M.get_worktrees = function()
 			local branch = string.match(line, "^branch refs/heads/(.+)$")
 			if branch then
 				tree.branch = string.format("%s", branch)
-				tree.label = string.format("[%s]", branch)
+				tree.branch_label = string.format("[%s]", branch)
 			elseif string.find(line, "^detached$") then
-				tree.label = "(detached HEAD)"
+				tree.branch_label = "(detached HEAD)"
 			end
 		end
 	end
 
-	log.debug(trees)
+	local path_width = 0
+	for _, tree in ipairs(trees) do
+		path_width = math.max(#tree.text, path_width)
+	end
 
+	local pad = 0
+	for _, tree in ipairs(trees) do
+		pad = path_width - #tree.text + 1
+		tree.text = tree.text .. string.rep(" ", pad) .. tree.head .. " " .. tree.branch_label
+		tree.text = tree.text:gsub("%s+$", "")
+	end
+
+	log.debug(trees)
 	return trees
 end
 

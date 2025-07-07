@@ -5,10 +5,7 @@ local git = require("gitree.git")
 local log = require("gitree.log")
 local state = require("gitree.state")
 local utils = require("gitree.utils")
-
-local telescope_action_state = require("telescope.actions.state")
-local telescope_actions = require("telescope.actions")
-local telescope_builtin = require("telescope.builtin")
+local picker = require("gitree.picker")
 
 local change_dir = function(worktree_path)
 	vim.cmd("cd " .. worktree_path)
@@ -39,8 +36,8 @@ local add_worktree = function()
 	end)
 end
 
-M.move = function(prompt_bufnr)
-	local tree = telescope_action_state.get_selected_entry()
+M.move = function(opts)
+	local tree = picker.current(opts)
 	if tree == nil then
 		log.warn("No worktree selected")
 		return
@@ -49,7 +46,7 @@ M.move = function(prompt_bufnr)
 		log.warn("Refusing to move main worktree")
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
+	picker.close(opts)
 	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
@@ -81,8 +78,8 @@ M.move = function(prompt_bufnr)
 	end)
 end
 
-M.remove = function(prompt_bufnr)
-	local tree = telescope_action_state.get_selected_entry()
+M.remove = function(opts)
+	local tree = picker.current(opts)
 	if tree == nil then
 		log.warn("No worktree selected")
 		return
@@ -94,7 +91,7 @@ M.remove = function(prompt_bufnr)
 		log.warn("Refusing to remove main worktree")
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
+	picker.close(opts)
 	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
@@ -118,25 +115,25 @@ M.remove = function(prompt_bufnr)
 	end)
 end
 
-local add_from_local_tracking_branch = function(prompt_bufnr)
-	local entry = telescope_action_state.get_selected_entry()
+M.add_from_local_tracking_branch = function(opts)
+	local entry = picker.current_branch(opts)
 	if entry == nil then
 		log.warn("No upstream branch selected")
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
-	state.new_worktree_opts.upstream = entry.value
+	picker.close(opts)
+	state.new_worktree_opts.upstream = entry
 	add_worktree()
 end
 
-local add_from_commit = function(prompt_bufnr)
-	local entry = telescope_action_state.get_selected_entry()
+M.add_from_commit = function(opts)
+	local entry = picker.current_commit(opts)
 	if entry == nil then
 		log.warn("No commit selected")
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
-	state.new_worktree_opts.commit = entry.value
+	picker.close(opts)
+	state.new_worktree_opts.commit = entry
 	local ok = utils.confirm("Create a new branch?")
 	if ok == nil then
 		return
@@ -151,39 +148,33 @@ local add_from_commit = function(prompt_bufnr)
 			return
 		end
 		if ok then
-			local opts = {}
-			opts.attach_mappings = function(_, _)
-				telescope_actions.select_default:replace(add_from_local_tracking_branch)
-				return true
-			end
-			opts.pattern = nil
-			return telescope_builtin.git_branches(opts)
+			return picker.git_all_branches()
 		end
 	end
 	add_worktree()
 end
 
-local add_from_local_branch = function(prompt_bufnr)
-	local entry = telescope_action_state.get_selected_entry()
+M.add_from_local_branch = function(opts)
+	local entry = picker.current_branch(opts)
 	if entry == nil then
 		log.warn("No local branch selected")
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
-	state.new_worktree_opts.branch = entry.value
+	picker.close(opts)
+	state.new_worktree_opts.branch = entry
 	add_worktree()
 end
 
-local add_from_remote_branch = function(prompt_bufnr)
-	local entry = telescope_action_state.get_selected_entry()
+M.add_from_remote_branch = function(opts)
+	local entry = picker.current_branch(opts)
 	if entry == nil then
 		log.warn("No remote branch selected")
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
+	picker.close(opts)
 	state.new_worktree_opts.remote = true
-	state.new_worktree_opts.upstream = entry.value
-	state.new_worktree_opts.branch = utils.input("New branch name > ", string.gsub(entry.value, "/", "_"))
+	state.new_worktree_opts.upstream = entry
+	state.new_worktree_opts.branch = utils.input("New branch name > ", string.gsub(entry, "/", "_"))
 	if state.new_worktree_opts.branch == nil then
 		return
 	end
@@ -198,27 +189,13 @@ M.add = function()
 		path = nil,
 		commit = nil,
 	}
-	local opts = {}
 
 	local ok = utils.confirm("Checkout a commit? (otherwise, an existing branch)")
 	if ok == nil then
 		return
 	end
 	if ok then
-		opts.attach_mappings = function(_, _)
-			telescope_actions.select_default:replace(add_from_commit)
-			return true
-		end
-		opts.git_command = {
-			"git",
-			"-C",
-			state.main_worktree_path:absolute(), -- grab all commits by targeting the main worktree
-			"log",
-			"--pretty=oneline",
-			"--abbrev-commit",
-			"--decorate=short", -- show tags for searching
-		}
-		return telescope_builtin.git_commits(opts)
+		return picker.git_commits()
 	end
 
 	ok = utils.confirm("Checkout a remote branch?")
@@ -226,24 +203,14 @@ M.add = function()
 		return
 	end
 	if ok then
-		opts.attach_mappings = function(_, _)
-			telescope_actions.select_default:replace(add_from_remote_branch)
-			return true
-		end
-		opts.pattern = "refs/remotes/"
-		return telescope_builtin.git_branches(opts)
+		return picker.git_remote_branches()
 	end
 
-	opts.attach_mappings = function(_, _)
-		telescope_actions.select_default:replace(add_from_local_branch)
-		return true
-	end
-	opts.pattern = "refs/heads/"
-	return telescope_builtin.git_branches(opts)
+	return picker.git_local_branches()
 end
 
-M.select = function(prompt_bufnr)
-	local tree = telescope_action_state.get_selected_entry()
+M.select = function(opts)
+	local tree = picker.current(opts)
 	if tree == nil then
 		log.warn("No worktree selected")
 		return
@@ -251,7 +218,7 @@ M.select = function(prompt_bufnr)
 	if tree.path == vim.uv.cwd() then
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
+	picker.close(opts)
 	log.info("Selecting worktree...")
 	vim.schedule(function()
 		change_dir(tree.path)
