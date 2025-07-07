@@ -28,7 +28,7 @@ local add_worktree = function()
 		return
 	end
 	log.info("Adding worktree...")
-	vim.defer_fn(function()
+	vim.schedule(function()
 		if git.add_worktree(state.new_worktree_opts) then
 			change_dir(state.new_worktree_opts.path)
 			state.new_worktree_opts = nil
@@ -36,7 +36,7 @@ local add_worktree = function()
 				config.options.on_add()
 			end
 		end
-	end, 10)
+	end)
 end
 
 M.move = function(prompt_bufnr)
@@ -58,7 +58,7 @@ M.move = function(prompt_bufnr)
 		return
 	end
 	log.info("Moving worktree...")
-	vim.defer_fn(function()
+	vim.schedule(function()
 		if git.move_worktree(tree, new_path) then
 			if tree.branch == "" then
 				log.info("Moved worktree")
@@ -78,7 +78,7 @@ M.move = function(prompt_bufnr)
 				end
 			end
 		end
-	end, 10)
+	end)
 end
 
 M.remove = function(prompt_bufnr)
@@ -99,7 +99,7 @@ M.remove = function(prompt_bufnr)
 		change_dir(state.main_worktree_path:absolute())
 	end
 	log.info("Removing worktree...")
-	vim.defer_fn(function()
+	vim.schedule(function()
 		if git.remove_worktree(tree.path) then
 			if tree.branch == "" then
 				log.info("Removed worktree")
@@ -115,7 +115,7 @@ M.remove = function(prompt_bufnr)
 				end
 			end
 		end
-	end, 10)
+	end)
 end
 
 local add_from_local_tracking_branch = function(prompt_bufnr)
@@ -250,12 +250,12 @@ M.select = function(prompt_bufnr)
 		return
 	end
 	log.info("Selecting worktree...")
-	vim.defer_fn(function()
+	vim.schedule(function()
 		change_dir(tree.path)
 		if config.options.on_select and type(config.options.on_select) == "function" then
 			config.options.on_select()
 		end
-	end, 10)
+	end)
 end
 
 return M
