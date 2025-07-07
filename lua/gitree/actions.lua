@@ -41,7 +41,6 @@ end
 
 M.move = function(prompt_bufnr)
 	local tree = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if tree == nil then
 		log.warn("No worktree selected")
 		return
@@ -50,6 +49,7 @@ M.move = function(prompt_bufnr)
 		log.warn("Refusing to move main worktree")
 		return
 	end
+	telescope_actions.close(prompt_bufnr)
 	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
@@ -90,11 +90,11 @@ M.remove = function(prompt_bufnr)
 	if not utils.confirm(string.format("Remove worktree %s?", tree.path)) then
 		return
 	end
-	telescope_actions.close(prompt_bufnr)
 	if tree.path == state.main_worktree_path:absolute() then
 		log.warn("Refusing to remove main worktree")
 		return
 	end
+	telescope_actions.close(prompt_bufnr)
 	if tree.path == vim.uv.cwd() then
 		change_dir(state.main_worktree_path:absolute())
 	end
@@ -120,22 +120,22 @@ end
 
 local add_from_local_tracking_branch = function(prompt_bufnr)
 	local entry = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if entry == nil then
 		log.warn("No upstream branch selected")
 		return
 	end
+	telescope_actions.close(prompt_bufnr)
 	state.new_worktree_opts.upstream = entry.value
 	add_worktree()
 end
 
 local add_from_commit = function(prompt_bufnr)
 	local entry = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if entry == nil then
 		log.warn("No commit selected")
 		return
 	end
+	telescope_actions.close(prompt_bufnr)
 	state.new_worktree_opts.commit = entry.value
 	local ok = utils.confirm("Create a new branch?")
 	if ok == nil then
@@ -165,22 +165,22 @@ end
 
 local add_from_local_branch = function(prompt_bufnr)
 	local entry = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if entry == nil then
 		log.warn("No local branch selected")
 		return
 	end
+	telescope_actions.close(prompt_bufnr)
 	state.new_worktree_opts.branch = entry.value
 	add_worktree()
 end
 
 local add_from_remote_branch = function(prompt_bufnr)
 	local entry = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if entry == nil then
 		log.warn("No remote branch selected")
 		return
 	end
+	telescope_actions.close(prompt_bufnr)
 	state.new_worktree_opts.remote = true
 	state.new_worktree_opts.upstream = entry.value
 	state.new_worktree_opts.branch = utils.input("New branch name > ", string.gsub(entry.value, "/", "_"))
@@ -244,11 +244,14 @@ end
 
 M.select = function(prompt_bufnr)
 	local tree = telescope_action_state.get_selected_entry()
-	telescope_actions.close(prompt_bufnr)
 	if tree == nil then
 		log.warn("No worktree selected")
 		return
 	end
+	if tree.path == vim.uv.cwd() then
+		return
+	end
+	telescope_actions.close(prompt_bufnr)
 	log.info("Selecting worktree...")
 	vim.schedule(function()
 		change_dir(tree.path)
