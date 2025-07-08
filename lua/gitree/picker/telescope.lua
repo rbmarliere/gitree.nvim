@@ -69,9 +69,11 @@ M.list = function(opts)
 			sorter = telescope_config.values.generic_sorter(opts),
 			attach_mappings = function(_, map)
 				telescope_actions.select_default:replace(actions.select)
-				map({ "i", "n" }, "<m-a>", actions.add)
-				map({ "i", "n" }, "<m-r>", actions.remove)
-				map({ "i", "n" }, "<m-m>", actions.move)
+				map({ "i", "n" }, "<M-a>", actions.add)
+				map({ "i", "n" }, "<M-r>", actions.remove)
+				map({ "i", "n" }, "<M-m>", actions.move)
+				map({ "i", "n" }, "<M-p>", actions.files)
+				map({ "i", "n" }, "<M-g>", actions.grep)
 				return true
 			end,
 		})
@@ -124,6 +126,14 @@ M.git_commits = function()
 		"--decorate=short", -- show tags for searching
 	}
 	return telescope_builtin.git_commits(opts)
+end
+
+M.files = function(tree)
+	return telescope_builtin.find_files({ cwd = tree.path })
+end
+
+M.grep = function(tree)
+	return telescope_builtin.live_grep({ search_dirs = { tree.path }})
 end
 
 return M

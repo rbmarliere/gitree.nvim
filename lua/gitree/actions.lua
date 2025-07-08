@@ -228,4 +228,30 @@ M.select = function(opts)
 	end)
 end
 
+M.files = function(opts)
+	local tree = picker.current(opts)
+	if tree == nil then
+		log.warn("No worktree selected")
+		return
+	end
+	if tree.path == vim.uv.cwd() then
+		return
+	end
+	picker.close(opts)
+	return picker.files(tree)
+end
+
+M.grep = function(opts)
+	local tree = picker.current(opts)
+	if tree == nil then
+		log.warn("No worktree selected")
+		return
+	end
+	if tree.path == vim.uv.cwd() then
+		return
+	end
+	picker.close(opts)
+	return picker.grep(tree)
+end
+
 return M

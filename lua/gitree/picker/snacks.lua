@@ -48,6 +48,8 @@ M.list = function(opts)
 					["<M-a>"] = { "add", mode = { "i", "n" } },
 					["<M-m>"] = { "move", mode = { "i", "n" } },
 					["<M-r>"] = { "remove", mode = { "i", "n" } },
+					["<M-p>"] = { "files", mode = { "i", "n" } },
+					["<M-g>"] = { "grep", mode = { "i", "n" } },
 				},
 			},
 		},
@@ -55,6 +57,8 @@ M.list = function(opts)
 			add = actions.add,
 			move = actions.move,
 			remove = actions.remove,
+			files = actions.files,
+			grep = actions.grep,
 		},
 	})
 end
@@ -83,6 +87,14 @@ M.git_commits = function()
 	return Snacks.picker.git_log({
 		confirm = actions.add_from_commit,
 	})
+end
+
+M.files = function(tree)
+	return Snacks.picker.files({ cwd = tree.path })
+end
+
+M.grep = function(tree)
+	return Snacks.picker.grep({ dirs = { tree.path } })
 end
 
 return M

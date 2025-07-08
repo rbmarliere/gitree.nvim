@@ -44,6 +44,7 @@ return {
 				},
 			},
 		})
+		require("telescope").load_extension("gitree")
 	end,
 }
 ```
@@ -85,3 +86,7 @@ After opening the list() picker, use the default action key maps:
 `<M-r>` -> Remove the worktree under the cursor
 
 `<M-m>` -> Move the worktree under the cursor
+
+`<M-g>` -> Grep in the worktree under the cursor
+
+`<M-p>` -> Find files in the worktree under the cursor
