@@ -195,7 +195,15 @@ M.add = function()
 		return
 	end
 	if ok then
-		return picker.git_commits()
+		ok = utils.confirm("Checkout a specific tag?")
+		if ok == nil then
+			return
+		end
+		if ok then
+			return picker.git_tags()
+		else
+			return picker.git_commits()
+		end
 	end
 
 	ok = utils.confirm("Checkout a remote branch?")

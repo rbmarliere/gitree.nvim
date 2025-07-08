@@ -29,6 +29,32 @@ M.list_worktrees = function()
 	return stdout
 end
 
+M.get_tags = function()
+	local common_dir = M.try_get_common_dir()
+	if not common_dir then
+		return false
+	end
+
+	local ret, stdout, _ = cmd.git("-C", common_dir, "tag")
+	assert(ret == 0)
+	if not stdout then
+		return {}
+	end
+
+	local tags = {}
+	for i, line in ipairs(stdout) do
+		if line then
+			local tag = {}
+			tag.text = line
+			tag.commit = line -- for use in actions.add_from_commit
+			table.insert(tags, i, tag)
+		end
+	end
+
+	log.debug(tags)
+	return tags
+end
+
 M.get_worktrees = function()
 	local common_dir = M.try_get_common_dir()
 	if not common_dir then

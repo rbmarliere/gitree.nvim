@@ -29,8 +29,7 @@ M.close = function(picker)
 	picker:close()
 end
 
-M.list = function(opts)
-	opts = opts or {}
+M.list = function(_)
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
@@ -95,6 +94,21 @@ end
 
 M.grep = function(tree)
 	return Snacks.picker.grep({ dirs = { tree.path } })
+end
+
+M.git_tags = function()
+	local tags = git.get_tags()
+	if not tags then
+		return
+	end
+
+	return Snacks.picker({
+		title = "Git Tags",
+		items = tags,
+		preview = "git_show",
+		confirm = actions.add_from_commit,
+		format = "text",
+	})
 end
 
 return M

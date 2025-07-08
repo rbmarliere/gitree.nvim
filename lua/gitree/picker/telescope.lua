@@ -34,39 +34,25 @@ M.close = function(prompt_bufnr)
 	telescope_actions.close(prompt_bufnr)
 end
 
-M.list = function(opts)
-	opts = opts or {}
+M.list = function()
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
 	end
 
-	local displayer = telescope_entry_display.create({
-		separator = " ",
-		items = {
-			{ remaining = true },
-		},
-	})
-
-	local make_display = function(entry)
-		return displayer({
-			{ entry.text, "TelescopeResultsIdentifier" },
-		})
-	end
-
 	telescope_pickers
-		.new(opts, {
+		.new({}, {
 			prompt_title = "Git Worktrees",
 			finder = telescope_finders.new_table({
 				results = state.worktrees,
 				entry_maker = function(entry)
-					entry.value = entry.path
+					entry.value = entry.text
 					entry.ordinal = entry.text
-					entry.display = make_display
+					entry.display = entry.text
 					return entry
 				end,
 			}),
-			sorter = telescope_config.values.generic_sorter(opts),
+			sorter = telescope_config.values.generic_sorter({}),
 			attach_mappings = function(_, map)
 				telescope_actions.select_default:replace(actions.select)
 				map({ "i", "n" }, "<M-a>", actions.add)
@@ -134,6 +120,33 @@ end
 
 M.grep = function(tree)
 	return telescope_builtin.live_grep({ search_dirs = { tree.path }})
+end
+
+M.git_tags = function()
+	local tags = git.get_tags()
+	if not tags then
+		return
+	end
+
+	telescope_pickers
+		.new({}, {
+			prompt_title = "Git Tags",
+			finder = telescope_finders.new_table({
+				results = tags,
+				entry_maker = function(entry)
+					entry.value = entry.text
+					entry.ordinal = entry.text
+					entry.display = entry.text
+					return entry
+				end,
+			}),
+			sorter = telescope_config.values.generic_sorter(),
+			attach_mappings = function(_, _)
+				telescope_actions.select_default:replace(actions.add_from_commit)
+				return true
+			end,
+		})
+		:find()
 end
 
 return M
