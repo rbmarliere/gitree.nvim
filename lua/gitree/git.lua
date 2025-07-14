@@ -229,6 +229,10 @@ M.move_worktree = function(tree, dest)
 		return false
 	end
 
+	-- git fails if required subdirectory is not found
+	-- e.g. `git worktree move foo nonexistantdir/foo
+	vim.system({"mkdir", "-p", dest:parent():absolute()}):wait()
+
 	local ret, _, _
 	if M.has_submodule(tree) then
 		local ok = utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)")
