@@ -73,6 +73,7 @@ M.git_remote_branches = function()
 	return Snacks.picker.git_branches({
 		all = true,
 		confirm = actions.add_from_remote_branch,
+		pattern = "remotes/",
 	})
 end
 
