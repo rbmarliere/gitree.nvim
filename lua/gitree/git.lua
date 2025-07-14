@@ -208,13 +208,16 @@ end
 
 M.remove_worktree = function(path)
 	local cmdline = { "worktree", "remove", path }
-	local ret, _, _ = cmd.git(cmdline)
-	if ret ~= 0 and utils.confirm("Unable to remove, force? (might contain submodules or uncommitted changes)") then
+	local removed, _, _ = cmd.git(cmdline)
+	if removed ~= 0 and utils.confirm("Unable to remove, force? (might contain submodules or uncommitted changes)") then
 		table.insert(cmdline, "--force")
-		ret, _, _ = cmd.git(cmdline)
-		return ret == 0
+		removed, _, _ = cmd.git(cmdline)
 	end
-	return ret == 0
+	if removed ~= 0 then
+		return false
+	end
+	utils.rm_dangling_dirs(path)
+	return true
 end
 
 M.move_worktree = function(tree, dest)
@@ -260,6 +263,7 @@ M.move_worktree = function(tree, dest)
 				log.warn("Unable to re-init submodules")
 				return false
 			end
+			utils.rm_dangling_dirs(tree.path)
 			tree.path = dest:absolute()
 			return true
 		else
@@ -267,7 +271,11 @@ M.move_worktree = function(tree, dest)
 		end
 	else
 		ret, _, _ = cmd.git("worktree", "move", tree.path, dest:absolute())
-		return ret == 0
+		if ret ~= 0 then
+			return false
+		end
+		utils.rm_dangling_dirs(tree.path)
+		return true
 	end
 end
 

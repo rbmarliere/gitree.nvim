@@ -3,6 +3,8 @@ local M = {}
 local log = require("gitree.log")
 local state = require("gitree.state")
 
+local Path = require("plenary.path")
+
 M.confirm = function(label)
 	local ans = M.input(string.format("%s [y|N]: ", label), "")
 	if ans == nil then
@@ -37,6 +39,32 @@ M.is_worktree_path_valid = function(path)
 		return false
 	end
 	return true
+end
+
+M.is_dir_empty = function(path)
+	local fd = vim.loop.fs_scandir(path)
+	if not fd then
+		return false -- cannot scan, assume not empty or invalid
+	end
+	return vim.loop.fs_scandir_next(fd) == nil
+end
+
+M.rm_dangling_dirs = function(path)
+	-- git does not clean up empty directories
+	-- e.g. `git worktree remove foo/bar` will not remove `foo` if it becomes empty
+	local root = state.main_worktree_path
+	local current = Path:new(path):parent()
+	while current:absolute():sub(1, #root:absolute()) == root:absolute() do
+		if not current:exists() or not current:is_dir() or not M.is_dir_empty(current:absolute()) then
+			break
+		end
+		log.debug("removing empty dir", current:absolute())
+		current:rmdir()
+		current = current:parent()
+		if current:absolute() == root:absolute() then
+			break
+		end
+	end
 end
 
 return M
