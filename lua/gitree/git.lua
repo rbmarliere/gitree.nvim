@@ -166,34 +166,35 @@ M.add_worktree = function(opts)
 		return false
 	end
 
-	if branch == nil and commit == nil then
-		log.warn("Need a branch or commit to create new worktree")
-		return false
-	end
-
 	if branch == nil then
-		table.insert(cmdline, "--detach")
+		if commit == nil then
+			log.warn("Need a commit to create new detached worktree")
+		end
+		table.insert(cmdline, "-d")
 		table.insert(cmdline, path:absolute())
 		table.insert(cmdline, commit)
 	else
 		for _, tree in ipairs(state.worktrees) do
-			log.debug(tree)
 			if tree.branch == branch then
 				log.warn("Branch", branch, "already in use in", tree.path)
 				return false
 			end
 		end
-		if M.has_branch(branch) then
-			table.insert(cmdline, path:absolute())
-			table.insert(cmdline, branch)
-		else
+
+		table.insert(cmdline, path:absolute())
+
+		if not M.has_branch(branch) then
 			table.insert(cmdline, "-b")
-			table.insert(cmdline, branch)
-			table.insert(cmdline, path:absolute())
-			if upstream ~= nil then
-				table.insert(cmdline, "--track")
-				table.insert(cmdline, upstream)
-			end
+		elseif (upstream ~= nil or commit ~= nil) and utils.confirm("Reset existing branch?") then
+			table.insert(cmdline, "-B")
+		end
+		table.insert(cmdline, branch)
+
+		if upstream ~= nil then
+			table.insert(cmdline, "--track")
+			table.insert(cmdline, upstream)
+		elseif commit ~= nil then
+			table.insert(cmdline, commit)
 		end
 	end
 
@@ -234,7 +235,7 @@ M.move_worktree = function(tree, dest)
 
 	-- git fails if required subdirectory is not found
 	-- e.g. `git worktree move foo nonexistantdir/foo
-	vim.system({"mkdir", "-p", dest:parent():absolute()}):wait()
+	vim.system({ "mkdir", "-p", dest:parent():absolute() }):wait()
 
 	local ret, _, _
 	if M.has_submodule(tree) then
