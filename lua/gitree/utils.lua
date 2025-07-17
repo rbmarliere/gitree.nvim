@@ -5,6 +5,12 @@ local state = require("gitree.state")
 
 local Path = require("plenary.path")
 
+M.change_dir = function(worktree_path)
+	vim.cmd("cd " .. worktree_path)
+	vim.cmd("clearjumps")
+	log.info("Changed directory to " .. worktree_path)
+end
+
 M.confirm = function(label)
 	local ans = M.input(string.format("%s [y|N]: ", label), "")
 	if ans == nil then
@@ -26,16 +32,17 @@ M.input = function(prompt, default)
 end
 
 M.is_worktree_path_valid = function(path)
+	path = Path:new(path)
 	if path:absolute() == state.main_worktree_path:absolute() then
-		log.warn("New worktree path can't be the same of the main worktree")
+		log.warn("Worktree path can't be the same of the main worktree")
 		return false
 	end
 	if path:absolute():sub(1, #state.main_worktree_path:absolute()) ~= state.main_worktree_path:absolute() then
-		log.warn("New worktree path is not within the main worktree")
+		log.warn("Worktree path is not within the main worktree")
 		return false
 	end
 	if path:exists() then
-		log.warn("New worktree path already exists")
+		log.warn("Worktree path already exists")
 		return false
 	end
 	return true

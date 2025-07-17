@@ -65,27 +65,27 @@ end
 M.git_all_branches = function()
 	return Snacks.picker.git_branches({
 		all = true,
-		confirm = actions.add_from_local_tracking_branch,
+		confirm = actions.pick_upstream_branch,
 	})
 end
 
 M.git_remote_branches = function()
 	return Snacks.picker.git_branches({
 		all = true,
-		confirm = actions.add_from_remote_branch,
+		confirm = actions.pick_remote_branch,
 		pattern = "remotes/",
 	})
 end
 
 M.git_local_branches = function()
 	return Snacks.picker.git_branches({
-		confirm = actions.add_from_local_branch,
+		confirm = actions.pick_local_branch,
 	})
 end
 
 M.git_commits = function()
 	return Snacks.picker.git_log({
-		confirm = actions.add_from_commit,
+		confirm = actions.pick_commit,
 	})
 end
 
@@ -107,7 +107,7 @@ M.git_tags = function()
 		title = "Git Tags",
 		items = tags,
 		preview = "git_show",
-		confirm = actions.add_from_commit,
+		confirm = actions.pick_commit,
 		format = "text",
 	})
 end

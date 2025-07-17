@@ -3,36 +3,176 @@ local M = {}
 local config = require("gitree.config")
 local git = require("gitree.git")
 local log = require("gitree.log")
-local state = require("gitree.state")
+local s = require("gitree.state")
 local utils = require("gitree.utils")
 local picker = require("gitree.picker")
 
-local change_dir = function(worktree_path)
-	vim.cmd("cd " .. worktree_path)
-	vim.cmd("clearjumps")
-	log.info("Changed directory to " .. worktree_path)
-end
+local Path = require("plenary.path")
 
-local add_worktree = function()
-	local suffix = state.main_worktree_path:absolute() .. "/"
-	if state.new_worktree_opts.remote and state.new_worktree_opts.upstream then
-		suffix = string.format("%s%s", suffix, state.new_worktree_opts.upstream)
-	elseif state.new_worktree_opts.branch then
-		suffix = string.format("%s%s", suffix, state.new_worktree_opts.branch)
-	end
-	state.new_worktree_opts.path = utils.input("Path to worktree > ", suffix)
-	if state.new_worktree_opts.path == nil then
+M.pick_upstream_branch = function(opts)
+	local entry = picker.current_branch(opts)
+	if entry == nil then
+		log.warn("No upstream branch selected")
 		return
 	end
+	picker.close(opts)
+	s.new.upstream = entry
+	M.add()
+end
+
+M.pick_commit = function(opts)
+	local entry = picker.current_commit(opts)
+	if entry == nil then
+		log.warn("No commit selected")
+		return
+	end
+	picker.close(opts)
+	s.new.commit = entry
+	M.add()
+end
+
+M.pick_local_branch = function(opts)
+	local entry = picker.current_branch(opts)
+	if entry == nil then
+		log.warn("No local branch selected")
+		return
+	end
+	picker.close(opts)
+	for _, tree in ipairs(s.worktrees) do
+		if tree.branch == entry then
+			log.warn("Branch", entry, "already in use in", tree.path)
+			s.new = nil
+			return false
+		end
+	end
+	s.new.branch = entry
+	M.add()
+end
+
+M.pick_remote_branch = function(opts)
+	local entry = picker.current_branch(opts)
+	if entry == nil then
+		log.warn("No remote branch selected")
+		return
+	end
+	picker.close(opts)
+	s.new.remote = true
+	s.new.upstream = entry
+	s.new.branch = utils.input("New branch name > ", string.gsub(entry, "/", "_"))
+	if s.new.branch == nil then
+		return
+	end
+	M.add()
+end
+
+M.add = function()
+	local ok
+	log.debug(s.new)
+	if s.new == nil then
+		s.new = {
+			remote = false,
+			upstream = nil,
+			branch = nil,
+			path = nil,
+			commit = nil,
+		}
+		ok = utils.confirm("Checkout a commit? (otherwise, an existing branch)")
+		if ok == nil then
+			s.new = nil
+			return
+		end
+		if ok then
+			ok = utils.confirm("Checkout a specific tag?")
+			if ok == nil then
+				s.new = nil
+				return
+			end
+			if ok then
+				return picker.git_tags()
+			else
+				return picker.git_commits()
+			end
+		end
+		ok = utils.confirm("Checkout a remote branch?")
+		if ok == nil then
+			s.new = nil
+			return
+		end
+		if ok then
+			return picker.git_remote_branches()
+		end
+		return picker.git_local_branches()
+	end
+
+	if s.new.branch == nil then
+		ok = utils.confirm("Create a new branch?")
+		if ok == nil then
+			s.new = nil
+			return
+		end
+		if ok then
+			s.new.branch = utils.input("New branch name > ", "")
+			if s.new.branch == nil then
+				s.new = nil
+				return
+			end
+		end
+	end
+	if s.new.commit == nil and s.new.upstream == nil then
+		ok = utils.confirm("Checkout a commit?")
+		if ok == nil then
+			s.new = nil
+			return
+		end
+		if ok then
+			ok = utils.confirm("Checkout a specific tag?")
+			if ok == nil then
+				s.new = nil
+				return
+			end
+			if ok then
+				return picker.git_tags()
+			else
+				return picker.git_commits()
+			end
+		end
+	end
+	if s.new.commit == nil and s.new.branch ~= nil and not s.new.remote and s.new.upstream == nil then
+		ok = utils.confirm("Track an upstream?")
+		if ok == nil then
+			s.new = nil
+			return
+		end
+		if ok then
+			return picker.git_all_branches()
+		end
+	end
+
+	local suffix = s.main_worktree_path:absolute() .. "/"
+	if s.new.remote and s.new.upstream then
+		suffix = string.format("%s%s", suffix, s.new.upstream)
+	elseif s.new.branch then
+		suffix = string.format("%s%s", suffix, s.new.branch)
+	end
+	local new_path = utils.input("Path to worktree > ", suffix)
+	if new_path == nil then
+		s.new = nil
+		return
+	end
+	if not utils.is_worktree_path_valid(new_path) then
+		s.new = nil
+		return
+	end
+	s.new.path = Path:new(new_path):absolute()
 	log.info("Adding worktree...")
 	vim.schedule(function()
-		if git.add_worktree(state.new_worktree_opts) then
-			change_dir(state.new_worktree_opts.path)
-			state.new_worktree_opts = nil
+		if git.add_worktree(s.new) then
+			utils.change_dir(s.new.path)
 			if config.options.on_add and type(config.options.on_add) == "function" then
 				config.options.on_add()
 			end
 		end
+		s.new = nil
 	end)
 end
 
@@ -42,18 +182,22 @@ M.move = function(opts)
 		log.warn("No worktree selected")
 		return
 	end
-	if tree.path == state.main_worktree_path:absolute() then
+	if tree.path == s.main_worktree_path:absolute() then
 		log.warn("Refusing to move main worktree")
 		return
 	end
 	picker.close(opts)
 	if tree.path == vim.uv.cwd() then
-		change_dir(state.main_worktree_path:absolute())
+		utils.change_dir(s.main_worktree_path:absolute())
 	end
 	local new_path = utils.input("New path to worktree > ", tree.path)
 	if new_path == nil then
 		return
 	end
+	if not utils.is_worktree_path_valid(new_path) then
+		return
+	end
+	s.new.path = Path:new(new_path):absolute()
 	log.info("Moving worktree...")
 	vim.schedule(function()
 		if git.move_worktree(tree, new_path) then
@@ -87,13 +231,13 @@ M.remove = function(opts)
 	if not utils.confirm(string.format("Remove worktree %s?", tree.path)) then
 		return
 	end
-	if tree.path == state.main_worktree_path:absolute() then
+	if tree.path == s.main_worktree_path:absolute() then
 		log.warn("Refusing to remove main worktree")
 		return
 	end
 	picker.close(opts)
 	if tree.path == vim.uv.cwd() then
-		change_dir(state.main_worktree_path:absolute())
+		utils.change_dir(s.main_worktree_path:absolute())
 	end
 	log.info("Removing worktree...")
 	vim.schedule(function()
@@ -115,108 +259,6 @@ M.remove = function(opts)
 	end)
 end
 
-M.add_from_local_tracking_branch = function(opts)
-	local entry = picker.current_branch(opts)
-	if entry == nil then
-		log.warn("No upstream branch selected")
-		return
-	end
-	picker.close(opts)
-	state.new_worktree_opts.upstream = entry
-	add_worktree()
-end
-
-M.add_from_commit = function(opts)
-	local entry = picker.current_commit(opts)
-	if entry == nil then
-		log.warn("No commit selected")
-		return
-	end
-	picker.close(opts)
-	state.new_worktree_opts.commit = entry
-	local ok = utils.confirm("Create a new branch?")
-	if ok == nil then
-		return
-	end
-	if ok then
-		state.new_worktree_opts.branch = utils.input("New branch name > ", "")
-		if state.new_worktree_opts.branch == nil then
-			return
-		end
-		ok = utils.confirm("Track an upstream?")
-		if ok == nil then
-			return
-		end
-		if ok then
-			return picker.git_all_branches()
-		end
-	end
-	add_worktree()
-end
-
-M.add_from_local_branch = function(opts)
-	local entry = picker.current_branch(opts)
-	if entry == nil then
-		log.warn("No local branch selected")
-		return
-	end
-	picker.close(opts)
-	state.new_worktree_opts.branch = entry
-	add_worktree()
-end
-
-M.add_from_remote_branch = function(opts)
-	local entry = picker.current_branch(opts)
-	if entry == nil then
-		log.warn("No remote branch selected")
-		return
-	end
-	picker.close(opts)
-	state.new_worktree_opts.remote = true
-	state.new_worktree_opts.upstream = entry
-	state.new_worktree_opts.branch = utils.input("New branch name > ", string.gsub(entry, "/", "_"))
-	if state.new_worktree_opts.branch == nil then
-		return
-	end
-	add_worktree()
-end
-
-M.add = function()
-	state.new_worktree_opts = {
-		remote = false,
-		upstream = nil,
-		branch = nil,
-		path = nil,
-		commit = nil,
-	}
-
-	local ok = utils.confirm("Checkout a commit? (otherwise, an existing branch)")
-	if ok == nil then
-		return
-	end
-	if ok then
-		ok = utils.confirm("Checkout a specific tag?")
-		if ok == nil then
-			return
-		end
-		if ok then
-			return picker.git_tags()
-		else
-			return picker.git_commits()
-		end
-	end
-
-	ok = utils.confirm("Checkout a remote branch?")
-	if ok == nil then
-		return
-	end
-	if ok then
-		return picker.git_remote_branches()
-	end
-
-	return picker.git_local_branches()
-end
-
 M.select = function(opts)
 	local tree = picker.current(opts)
 	if tree == nil then
@@ -229,7 +271,7 @@ M.select = function(opts)
 	picker.close(opts)
 	log.info("Selecting worktree...")
 	vim.schedule(function()
-		change_dir(tree.path)
+		utils.change_dir(tree.path)
 		if config.options.on_select and type(config.options.on_select) == "function" then
 			config.options.on_select()
 		end

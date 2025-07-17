@@ -149,39 +149,21 @@ end
 
 M.add_worktree = function(opts)
 	log.debug(opts)
-	local path = opts.path or nil
-	local commit = opts.commit or nil
-	local branch = opts.branch or nil
-	local upstream = opts.upstream or nil
+	local path = opts.path
+	local commit = opts.commit
+	local branch = opts.branch
+	local upstream = opts.upstream
 	local cmdline = { "worktree", "add" }
-
-	if path == nil then
-		log.warn("New worktree path can't be nil")
-		return false
-	else
-		path = Path:new(path)
-	end
-
-	if not utils.is_worktree_path_valid(path) then
-		return false
-	end
 
 	if branch == nil then
 		if commit == nil then
 			log.warn("Need a commit to create new detached worktree")
 		end
 		table.insert(cmdline, "-d")
-		table.insert(cmdline, path:absolute())
+		table.insert(cmdline, path)
 		table.insert(cmdline, commit)
 	else
-		for _, tree in ipairs(state.worktrees) do
-			if tree.branch == branch then
-				log.warn("Branch", branch, "already in use in", tree.path)
-				return false
-			end
-		end
-
-		table.insert(cmdline, path:absolute())
+		table.insert(cmdline, path)
 
 		if not M.has_branch(branch) then
 			table.insert(cmdline, "-b")
