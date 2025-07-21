@@ -41,7 +41,7 @@ M.pick_local_branch = function(opts)
 	for _, tree in ipairs(s.worktrees) do
 		if tree.branch == entry then
 			log.warn("Branch", entry, "already in use in", tree.path)
-			s.new = nil
+			s.new = {}
 			return false
 		end
 	end
@@ -67,24 +67,16 @@ end
 
 M.add = function()
 	local ok
-	log.debug(s.new)
-	if s.new == nil then
-		s.new = {
-			remote = false,
-			upstream = nil,
-			branch = nil,
-			path = nil,
-			commit = nil,
-		}
+	if next(s.new) == nil then
 		ok = utils.confirm("Checkout a commit? (otherwise, an existing branch)")
 		if ok == nil then
-			s.new = nil
+			s.new = {}
 			return
 		end
 		if ok then
 			ok = utils.confirm("Checkout a specific tag?")
 			if ok == nil then
-				s.new = nil
+				s.new = {}
 				return
 			end
 			if ok then
@@ -95,7 +87,7 @@ M.add = function()
 		end
 		ok = utils.confirm("Checkout a remote branch?")
 		if ok == nil then
-			s.new = nil
+			s.new = {}
 			return
 		end
 		if ok then
@@ -107,13 +99,13 @@ M.add = function()
 	if s.new.branch == nil then
 		ok = utils.confirm("Create a new branch?")
 		if ok == nil then
-			s.new = nil
+			s.new = {}
 			return
 		end
 		if ok then
 			s.new.branch = utils.input("New branch name > ", "")
 			if s.new.branch == nil then
-				s.new = nil
+				s.new = {}
 				return
 			end
 		end
@@ -121,13 +113,13 @@ M.add = function()
 	if s.new.commit == nil and s.new.upstream == nil then
 		ok = utils.confirm("Checkout a commit?")
 		if ok == nil then
-			s.new = nil
+			s.new = {}
 			return
 		end
 		if ok then
 			ok = utils.confirm("Checkout a specific tag?")
 			if ok == nil then
-				s.new = nil
+				s.new = {}
 				return
 			end
 			if ok then
@@ -140,7 +132,7 @@ M.add = function()
 	if s.new.commit == nil and s.new.branch ~= nil and not s.new.remote and s.new.upstream == nil then
 		ok = utils.confirm("Track an upstream?")
 		if ok == nil then
-			s.new = nil
+			s.new = {}
 			return
 		end
 		if ok then
@@ -156,11 +148,11 @@ M.add = function()
 	end
 	local new_path = utils.input("Path to worktree > ", suffix)
 	if new_path == nil then
-		s.new = nil
+		s.new = {}
 		return
 	end
 	if not utils.is_worktree_path_valid(new_path) then
-		s.new = nil
+		s.new = {}
 		return
 	end
 	s.new.path = Path:new(new_path):absolute()
@@ -172,7 +164,7 @@ M.add = function()
 				config.options.on_add()
 			end
 		end
-		s.new = nil
+		s.new = {}
 	end)
 end
 
