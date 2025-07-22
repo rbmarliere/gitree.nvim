@@ -7,17 +7,14 @@ local get_logger = function()
 		logger = require("plenary.log").new({
 			plugin = "gitree",
 			level = config.options.log_level,
+			use_console = false,
 			fmt_msg = function(is_console, mode_name, src_path, src_line, msg)
 				local nameupper = mode_name:upper()
 				local lineinfo = src_path .. ":" .. src_line
 				if mode_name == "info" or mode_name == "warn" then
-					-- override default log format if its a simple "info"
-					return string.format("%s", msg)
-				elseif is_console then
-					return string.format("[%-6s%s] %s: %s", nameupper, os.date("%H:%M:%S"), lineinfo, msg)
-				else
-					return string.format("[%-6s%s] %s: %s\n", nameupper, os.date(), lineinfo, msg)
+					vim.notify(msg, mode_name)
 				end
+				return string.format("[%-6s%s] %s: %s\n", nameupper, os.date("%Y/%m/%d %H:%M:%S"), lineinfo, msg)
 			end,
 		})
 	end
