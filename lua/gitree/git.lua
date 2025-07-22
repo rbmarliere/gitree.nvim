@@ -72,7 +72,8 @@ M.get_worktrees = function()
 		path = "",
 		head = "",
 		branch = "",
-		branch_label = "",
+		branch_label = "(bare)", -- first one is always the main worktree
+		prunable = false,
 	}
 	local i = 1
 
@@ -89,13 +90,17 @@ M.get_worktrees = function()
 				cur = "[.] "
 			end
 			tree.text = string.format("%s%s", cur, tree.text)
+			if tree.prunable then
+				tree.branch_label = string.format("%s *PRUNABLE*", tree.branch_label)
+			end
 			table.insert(trees, i, tree)
 			tree = {
 				text = "",
 				path = "",
 				head = "",
 				branch = "",
-				branch_label = "(bare)", -- first one is always the main worktree
+				branch_label = "",
+				prunable = false,
 			}
 			i = i + 1
 		else
@@ -113,6 +118,10 @@ M.get_worktrees = function()
 				tree.branch_label = string.format("[%s]", branch)
 			elseif string.find(line, "^detached$") then
 				tree.branch_label = "(detached HEAD)"
+			end
+			local prunable = string.match(line, "^prunable")
+			if prunable then
+				tree.prunable = true
 			end
 		end
 	end

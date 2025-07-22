@@ -178,6 +178,10 @@ M.move = function(opts)
 		log.warn("Refusing to move main worktree")
 		return
 	end
+	if tree.prunable then
+		log.warn("Refusing to move prunable worktree")
+		return
+	end
 	picker.close(opts)
 	if tree.path == vim.uv.cwd() then
 		utils.change_dir(s.main_worktree_path:absolute())
@@ -258,6 +262,10 @@ M.select = function(opts)
 		return
 	end
 	if tree.path == vim.uv.cwd() then
+		return
+	end
+	if tree.prunable then
+		log.warn("Refusing to select prunable worktree")
 		return
 	end
 	picker.close(opts)
