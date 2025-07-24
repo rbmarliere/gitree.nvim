@@ -8,12 +8,12 @@ local utils = require("gitree.utils")
 local Path = require("plenary.path")
 
 M.is_bare_repository = function(path)
-	local ret, stdout, _ = cmd.git("-C", path, "rev-parse", "--is-bare-repository")
+	local ret, stdout = cmd.run({ "git", "-C", path, "rev-parse", "--is-bare-repository" })
 	return ret == 0 and stdout and stdout[1] == "true"
 end
 
 M.try_get_common_dir = function()
-	local ret, stdout, _ = cmd.git("rev-parse", "--path-format=absolute", "--git-common-dir")
+	local ret, stdout = cmd.run({ "git", "rev-parse", "--path-format=absolute", "--git-common-dir" })
 	if ret ~= 0 then
 		log.warn("Could not find common git directory. Is CWD a repository?")
 		return false
@@ -23,7 +23,7 @@ M.try_get_common_dir = function()
 end
 
 M.list_worktrees = function()
-	local ret, stdout, _ = cmd.git("worktree", "list", "--porcelain")
+	local ret, stdout = cmd.run({ "git", "worktree", "list", "--porcelain" })
 	assert(ret == 0)
 	assert(stdout ~= nil)
 	return stdout
@@ -35,7 +35,7 @@ M.get_tags = function()
 		return false
 	end
 
-	local ret, stdout, _ = cmd.git("-C", common_dir, "tag")
+	local ret, stdout = cmd.run({ "git", "-C", common_dir, "tag" })
 	assert(ret == 0)
 	if not stdout then
 		return {}
@@ -74,6 +74,7 @@ M.get_worktrees = function()
 		branch = "",
 		branch_label = "(bare)", -- first one is always the main worktree
 		prunable = false,
+		detached = false,
 	}
 	local i = 1
 
@@ -101,6 +102,7 @@ M.get_worktrees = function()
 				branch = "",
 				branch_label = "",
 				prunable = false,
+				detached = false,
 			}
 			i = i + 1
 		else
@@ -118,6 +120,7 @@ M.get_worktrees = function()
 				tree.branch_label = string.format("[%s]", branch)
 			elseif string.find(line, "^detached$") then
 				tree.branch_label = "(detached HEAD)"
+				tree.detached = true
 			end
 			local prunable = string.match(line, "^prunable")
 			if prunable then
@@ -143,26 +146,37 @@ M.get_worktrees = function()
 end
 
 M.has_branch = function(branch)
-	local ret, stdout, _ = cmd.git("branch", "--list", branch)
+	local ret, stdout = cmd.run({ "git", "branch", "--list", branch })
 	assert(ret == 0)
 	assert(stdout ~= nil)
 	return stdout[1] ~= nil
 end
 
 M.has_submodule = function(tree)
-	local ret, stdout, _ = cmd.git("-C", tree.path, "submodule", "status")
+	local ret, stdout = cmd.run({ "git", "-C", tree.path, "submodule", "status" })
 	assert(ret == 0)
 	assert(stdout ~= nil)
 	return stdout[1] ~= nil
 end
 
-M.add_worktree = function(opts)
+M.add_worktree = function(opts, cb)
 	log.debug(opts)
 	local path = opts.path
 	local commit = opts.commit
 	local branch = opts.branch
 	local upstream = opts.upstream
-	local cmdline = { "worktree", "add" }
+	local cmdline = { "git", "worktree", "add" }
+
+	local finish = function(cmdline)
+		table.insert(cmdline, branch)
+		if upstream ~= nil then
+			table.insert(cmdline, "--track")
+			table.insert(cmdline, upstream)
+		elseif commit ~= nil then
+			table.insert(cmdline, commit)
+		end
+		cmd.run_async(cmdline, cb)
+	end
 
 	if branch == nil then
 		if commit == nil then
@@ -171,48 +185,52 @@ M.add_worktree = function(opts)
 		table.insert(cmdline, "-d")
 		table.insert(cmdline, path)
 		table.insert(cmdline, commit)
+		cmd.run_async(cmdline, cb)
 	else
 		table.insert(cmdline, path)
-
 		if not M.has_branch(branch) then
 			table.insert(cmdline, "-b")
-		elseif (upstream ~= nil or commit ~= nil) and utils.confirm("Reset existing branch?") then
-			table.insert(cmdline, "-B")
-		end
-		table.insert(cmdline, branch)
-
-		if upstream ~= nil then
-			table.insert(cmdline, "--track")
-			table.insert(cmdline, upstream)
-		elseif commit ~= nil then
-			table.insert(cmdline, commit)
+			finish(cmdline)
+		elseif upstream ~= nil or commit ~= nil then
+			utils.confirm("Reset existing branch?", function(ans)
+				if ans == "Yes" then
+					table.insert(cmdline, "-B")
+				end
+				finish(cmdline)
+			end)
 		end
 	end
-
-	local ret, _, _ = cmd.git(cmdline)
-	return ret == 0
 end
 
 M.delete_branch = function(branch)
-	local ret, _, _ = cmd.git("branch", "-D", branch)
+	local ret, _ = cmd.run({ "git", "branch", "-D", branch })
 	return ret == 0
 end
 
-M.remove_worktree = function(path)
-	local cmdline = { "worktree", "remove", path }
-	local removed, _, _ = cmd.git(cmdline)
-	if removed ~= 0 and utils.confirm("Unable to remove, force? (might contain submodules or uncommitted changes)") then
-		table.insert(cmdline, "--force")
-		removed, _, _ = cmd.git(cmdline)
-	end
-	if removed ~= 0 then
-		return false
-	end
-	utils.rm_dangling_dirs(path)
-	return true
+M.remove_worktree = function(path, cb)
+	local cmdline = { "git", "worktree", "remove", path }
+	cmd.run_async(cmdline, function(ret, _, _)
+		if ret == 0 then
+			utils.rm_dangling_dirs(path)
+			vim.schedule(cb)
+		else
+			utils.confirm("Unable to remove, force? (might contain submodules or uncommitted changes)", function(ans)
+				if ans == "Yes" then
+					table.insert(cmdline, "--force")
+					cmd.run_async(cmdline, function(ret, _, _)
+						if ret == 0 then
+							utils.rm_dangling_dirs(path)
+							vim.schedule(cb)
+						end
+					end)
+				end
+			end)
+		end
+	end)
 end
 
 M.move_worktree = function(tree, dest)
+	-- TODO: special case `git worktree move foo foo/bar`
 	if dest == nil then
 		log.warn("New worktree path can't be nil")
 		return false
@@ -230,39 +248,37 @@ M.move_worktree = function(tree, dest)
 
 	local ret, _, _
 	if M.has_submodule(tree) then
-		local ok = utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)")
-		if ok == nil then
-			return
-		end
-		if ok then
-			ret, _, _ = cmd.git("-C", tree.path, "submodule", "deinit", "--all")
-			if not ret then
-				log.warn("Unable to deinit modules")
+		utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)", function(ans)
+			if ans == "Yes" then
+				ret, _ = cmd.run({ "git", "-C", tree.path, "submodule", "deinit", "--all" })
+				if not ret then
+					log.warn("Unable to deinit modules")
+					return false
+				end
+				ret = vim.fn.rename(tree.path, dest:absolute())
+				if not ret then
+					log.warn(string.format("Unable to rename directory %s to %s", tree.path, dest:absolute()))
+					return false
+				end
+				ret, _ = cmd.run({ "git", "-C", dest:absolute(), "worktree", "repair" })
+				if not ret then
+					log.warn("Unable to repair worktree")
+					return false
+				end
+				ret, _ = cmd.run({ "git", "-C", dest:absolute(), "submodule", "update", "--init", "--recursive" })
+				if not ret then
+					log.warn("Unable to re-init submodules")
+					return false
+				end
+				utils.rm_dangling_dirs(tree.path)
+				tree.path = dest:absolute()
+				return true
+			else
 				return false
 			end
-			ret = vim.fn.rename(tree.path, dest:absolute())
-			if not ret then
-				log.warn(string.format("Unable to rename directory %s to %s", tree.path, dest:absolute()))
-				return false
-			end
-			ret, _, _ = cmd.git("-C", dest:absolute(), "worktree", "repair")
-			if not ret then
-				log.warn("Unable to repair worktree")
-				return false
-			end
-			ret, _, _ = cmd.git("-C", dest:absolute(), "submodule", "update", "--init", "--recursive")
-			if not ret then
-				log.warn("Unable to re-init submodules")
-				return false
-			end
-			utils.rm_dangling_dirs(tree.path)
-			tree.path = dest:absolute()
-			return true
-		else
-			return false
-		end
+		end)
 	else
-		ret, _, _ = cmd.git("worktree", "move", tree.path, dest:absolute())
+		ret, _ = cmd.run({ "git", "worktree", "move", tree.path, dest:absolute() })
 		if ret ~= 0 then
 			return false
 		end
@@ -272,7 +288,7 @@ M.move_worktree = function(tree, dest)
 end
 
 M.rename_branch = function(old, new)
-	local ret, _, _ = cmd.git("branch", "-m", old, new)
+	local ret, _ = cmd.run({ "git", "branch", "-m", old, new })
 	return ret == 0
 end
 

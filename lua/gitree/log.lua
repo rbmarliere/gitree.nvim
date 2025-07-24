@@ -11,8 +11,8 @@ local get_logger = function()
 			fmt_msg = function(is_console, mode_name, src_path, src_line, msg)
 				local nameupper = mode_name:upper()
 				local lineinfo = src_path .. ":" .. src_line
-				if mode_name == "info" or mode_name == "warn" then
-					vim.notify(msg, mode_name)
+				if mode_name == "info" or mode_name == "warn" or mode_name == "error" then
+					vim.notify_once(msg, mode_name)
 				end
 				return string.format("[%-6s%s] %s: %s\n", nameupper, os.date("%Y/%m/%d %H:%M:%S"), lineinfo, msg)
 			end,

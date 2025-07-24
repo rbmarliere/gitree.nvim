@@ -6,29 +6,39 @@ local state = require("gitree.state")
 local Path = require("plenary.path")
 
 M.change_dir = function(worktree_path)
-	vim.cmd("cd " .. worktree_path)
-	vim.cmd("clearjumps")
-	log.info("Changed directory to " .. worktree_path)
+	vim.schedule(function()
+		vim.api.nvim_set_current_dir(worktree_path)
+		vim.api.nvim_command("clearjumps")
+		log.info("Changed directory to " .. worktree_path)
+	end)
 end
 
-M.confirm = function(label)
-	local ans = M.input(string.format("%s [y|N]: ", label), "")
-	if ans == nil then
-		return
-	end
-	return string.sub(string.lower(ans), 0, 1) == "y"
+M.confirm = function(label, cb)
+	assert(type(cb) == "function")
+	vim.ui.select({ "No", "Yes" }, {
+		prompt = label,
+	}, function(ans)
+		if ans then
+			cb(ans)
+		else
+			state.new = {}
+		end
+	end)
 end
 
-M.input = function(prompt, default)
-	local ok, ans = pcall(vim.fn.input, {
+M.input = function(prompt, default, cb)
+	assert(type(cb) == "function")
+	vim.ui.input({
 		prompt = prompt,
 		default = default,
 		cancelreturn = vim.NIL,
-	})
-	if not ok or ans == vim.NIL then
-		return
-	end
-	return ans
+	}, function(ans)
+		if ans then
+			cb(ans)
+		else
+			state.new = {}
+		end
+	end)
 end
 
 M.is_worktree_path_valid = function(path)

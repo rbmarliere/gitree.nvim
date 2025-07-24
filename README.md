@@ -39,7 +39,7 @@ return {
 			extensions = {
 				gitree = {
 					on_add = function()
-						vim.system({ "git", "submodule", "update", "--init", "--recursive" }):wait()
+						vim.system({ "git", "submodule", "update", "--init", "--recursive" })
 					end,
 				},
 			},
@@ -69,7 +69,7 @@ return {
 	opts = {
 		backend = "snacks",
 		on_add = function()
-			vim.system({ "git", "submodule", "update", "--init", "--recursive" }):wait()
+			vim.system({ "git", "submodule", "update", "--init", "--recursive" })
 		end,
 	}
 }
