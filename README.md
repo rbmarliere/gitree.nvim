@@ -32,6 +32,14 @@ return {
 			function()
 				require("telescope").extensions.gitree.list()
 			end,
+			desc = "List worktrees",
+		},
+		{
+			"<Leader>gW",
+			function()
+				require("telescope").extensions.gitree.list(vim.fn.expand("%:."))
+			end,
+			desc = "Open current file in another worktree",
 		},
 	},
 	init = function()
@@ -64,6 +72,14 @@ return {
 			function()
 				require("gitree.picker.snacks").list()
 			end,
+			desc = "List worktrees",
+		},
+		{
+			"<Leader>gW",
+			function()
+				require("gitree.picker.snacks").list(vim.fn.expand("%:."))
+			end,
+			desc = "Open current file in another worktree",
 		},
 	},
 	opts = {

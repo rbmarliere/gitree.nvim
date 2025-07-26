@@ -34,10 +34,29 @@ M.close = function(prompt_bufnr)
 	telescope_actions.close(prompt_bufnr)
 end
 
-M.list = function()
+M.list = function(cur_file)
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
+	end
+
+	local keys
+	if cur_file then
+		state.cur_file = cur_file
+		keys = function(_, _)
+			telescope_actions.select_default:replace(actions.select_file)
+			return true
+		end
+	else
+		keys = function(_, map)
+			telescope_actions.select_default:replace(actions.select)
+			map({ "i", "n" }, "<M-a>", actions.add)
+			map({ "i", "n" }, "<M-r>", actions.remove)
+			map({ "i", "n" }, "<M-m>", actions.move)
+			map({ "i", "n" }, "<M-p>", actions.files)
+			map({ "i", "n" }, "<M-g>", actions.grep)
+			return true
+		end
 	end
 
 	telescope_pickers
@@ -53,15 +72,7 @@ M.list = function()
 				end,
 			}),
 			sorter = telescope_config.values.generic_sorter({}),
-			attach_mappings = function(_, map)
-				telescope_actions.select_default:replace(actions.select)
-				map({ "i", "n" }, "<M-a>", actions.add)
-				map({ "i", "n" }, "<M-r>", actions.remove)
-				map({ "i", "n" }, "<M-m>", actions.move)
-				map({ "i", "n" }, "<M-p>", actions.files)
-				map({ "i", "n" }, "<M-g>", actions.grep)
-				return true
-			end,
+			attach_mappings = keys,
 		})
 		:find()
 end
@@ -119,7 +130,7 @@ M.files = function(tree)
 end
 
 M.grep = function(tree)
-	return telescope_builtin.live_grep({ search_dirs = { tree.path }})
+	return telescope_builtin.live_grep({ search_dirs = { tree.path } })
 end
 
 M.git_tags = function()

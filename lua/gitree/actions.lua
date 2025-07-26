@@ -292,4 +292,18 @@ M.grep = function(opts)
 	return picker.grep(tree)
 end
 
+M.select_file = function(opts)
+	local tree = picker.current(opts)
+	if tree == nil then
+		log.warn("No worktree selected")
+		return
+	end
+	if tree.path == vim.uv.cwd() then
+		return
+	end
+	picker.close(opts)
+	vim.cmd(string.format("vsplit %s/%s", tree.path, s.cur_file))
+	s.cur_file = nil
+end
+
 return M

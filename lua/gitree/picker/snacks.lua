@@ -29,27 +29,37 @@ M.close = function(picker)
 	picker:close()
 end
 
-M.list = function(_)
+M.list = function(cur_file)
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
+	end
+
+	local confirm
+	local keys = {}
+	if cur_file then
+		state.cur_file = cur_file
+		confirm = actions.select_file
+	else
+		confirm = actions.select
+		keys = {
+			["<M-a>"] = { "add", mode = { "i", "n" } },
+			["<M-m>"] = { "move", mode = { "i", "n" } },
+			["<M-r>"] = { "remove", mode = { "i", "n" } },
+			["<M-p>"] = { "files", mode = { "i", "n" } },
+			["<M-g>"] = { "grep", mode = { "i", "n" } },
+		}
 	end
 
 	return Snacks.picker({
 		title = "Git Worktrees",
 		items = state.worktrees,
 		layout = { preview = false },
-		confirm = actions.select,
+		confirm = confirm,
 		format = "text",
 		win = {
 			input = {
-				keys = {
-					["<M-a>"] = { "add", mode = { "i", "n" } },
-					["<M-m>"] = { "move", mode = { "i", "n" } },
-					["<M-r>"] = { "remove", mode = { "i", "n" } },
-					["<M-p>"] = { "files", mode = { "i", "n" } },
-					["<M-g>"] = { "grep", mode = { "i", "n" } },
-				},
+				keys = keys,
 			},
 		},
 		actions = {
