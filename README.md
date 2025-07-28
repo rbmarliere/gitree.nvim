@@ -10,10 +10,10 @@ This is a simple extension to list, select, add, remove and move
 
 ```lua
 {
-	log_level = "info",
-	backend = "telescope",
-	on_select = nil,
-	on_add = nil,
+  log_level = "info",
+  backend = "telescope",
+  on_select = nil,
+  on_add = nil,
 }
 ```
 
@@ -21,39 +21,39 @@ This is a simple extension to list, select, add, remove and move
 
 ```lua
 return {
-	"https://git.marliere.net/rbm/gitree.nvim",
-	dependencies = {
-		"nvim-lua/plenary.nvim",
-		{ "nvim-telescope/telescope.nvim", branch = "0.1.x" },
-	},
-	keys = {
-		{
-			"<Leader>gw",
-			function()
-				require("telescope").extensions.gitree.list()
-			end,
-			desc = "List worktrees",
-		},
-		{
-			"<Leader>gW",
-			function()
-				require("telescope").extensions.gitree.list(vim.fn.expand("%:."))
-			end,
-			desc = "Open current file in another worktree",
-		},
-	},
-	init = function()
-		require("telescope").setup({
-			extensions = {
-				gitree = {
-					on_add = function()
-						vim.system({ "git", "submodule", "update", "--init", "--recursive" })
-					end,
-				},
-			},
-		})
-		require("telescope").load_extension("gitree")
-	end,
+  "https://github.com/rbmarliere/gitree.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    { "nvim-telescope/telescope.nvim", branch = "0.1.x" },
+  },
+  keys = {
+    {
+      "<Leader>gw",
+      function()
+        require("telescope").extensions.gitree.list()
+      end,
+      desc = "List worktrees",
+    },
+    {
+      "<Leader>gW",
+      function()
+        require("telescope").extensions.gitree.list(vim.fn.expand("%:."))
+      end,
+      desc = "Open current file in another worktree",
+    },
+  },
+  init = function()
+    require("telescope").setup({
+      extensions = {
+        gitree = {
+          on_add = function()
+            vim.system({ "git", "submodule", "update", "--init", "--recursive" })
+          end,
+        },
+      },
+    })
+    require("telescope").load_extension("gitree")
+  end,
 }
 ```
 
@@ -61,33 +61,33 @@ return {
 
 ```lua
 return {
-	"https://git.marliere.net/rbm/gitree.nvim",
-	dependencies = {
-		"nvim-lua/plenary.nvim",
-		"folke/snacks.nvim",
-	},
-	keys = {
-		{
-			"<Leader>gw",
-			function()
-				require("gitree.picker.snacks").list()
-			end,
-			desc = "List worktrees",
-		},
-		{
-			"<Leader>gW",
-			function()
-				require("gitree.picker.snacks").list(vim.fn.expand("%:."))
-			end,
-			desc = "Open current file in another worktree",
-		},
-	},
-	opts = {
-		backend = "snacks",
-		on_add = function()
-			vim.system({ "git", "submodule", "update", "--init", "--recursive" })
-		end,
-	}
+  "https://github.com/rbmarliere/gitree.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "folke/snacks.nvim",
+  },
+  keys = {
+    {
+      "<Leader>gw",
+      function()
+        require("gitree.picker.snacks").list()
+      end,
+      desc = "List worktrees",
+    },
+    {
+      "<Leader>gW",
+      function()
+        require("gitree.picker.snacks").list(vim.fn.expand("%:."))
+      end,
+      desc = "Open current file in another worktree",
+    },
+  },
+  opts = {
+    backend = "snacks",
+    on_add = function()
+      vim.system({ "git", "submodule", "update", "--init", "--recursive" })
+    end,
+  }
 }
 ```
 
