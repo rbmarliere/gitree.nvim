@@ -122,8 +122,7 @@ M.add = function()
 	end
 
 	if
-		s.new.commit == nil
-		and s.new.branch ~= nil
+		s.new.branch ~= nil
 		and not s.new.remote
 		and s.new.upstream == nil
 		and not s.new.no_upstream
