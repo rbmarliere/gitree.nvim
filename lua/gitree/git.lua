@@ -198,6 +198,8 @@ M.add_worktree = function(opts, cb)
 				end
 				finish(cmdline)
 			end)
+		else
+			finish(cmdline)
 		end
 	end
 end
