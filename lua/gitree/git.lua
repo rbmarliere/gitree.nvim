@@ -168,14 +168,22 @@ M.add_worktree = function(opts, cb)
 	local cmdline = { "git", "worktree", "add" }
 
 	local finish = function(cmdline)
+		local cb_track
 		table.insert(cmdline, branch)
-		if upstream ~= nil then
+		if upstream ~= nil and commit ~= nil then
+			table.insert(cmdline, commit)
+			cb_track = function(ret, _, _)
+				if ret == 0 then
+					cmd.run_async({ "git", "-C", path, "branch", "-u", upstream }, cb)
+				end
+			end
+		elseif upstream ~= nil then
 			table.insert(cmdline, "--track")
 			table.insert(cmdline, upstream)
 		elseif commit ~= nil then
 			table.insert(cmdline, commit)
 		end
-		cmd.run_async(cmdline, cb)
+		cmd.run_async(cmdline, type(cb_track) == "function" and cb_track or cb)
 	end
 
 	if branch == nil then
