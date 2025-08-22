@@ -6,6 +6,10 @@ This is a simple extension to list, select, add, remove and move
 [git-worktrees]: https://git-scm.com/docs/git-worktree
 [git-worktree.nvim]: https://github.com/ThePrimeagen/git-worktree.nvim
 
+### Demo
+
+![](https://marliere.net/gitree.gif)
+
 ### Default Configuration
 
 ```lua
