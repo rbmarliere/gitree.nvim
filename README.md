@@ -106,3 +106,9 @@ After opening the list() picker, use the default action key maps:
 `<M-g>` -> Grep in the worktree under the cursor
 
 `<M-p>` -> Find files in the worktree under the cursor
+
+### Screenshot
+
+This is the list() picker for Snacks backend, with the keybinds above available:
+
+![](https://marliere.net/gitree.png)
