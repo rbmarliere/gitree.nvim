@@ -224,16 +224,21 @@ M.remove_worktree = function(path, cb)
 			utils.rm_dangling_dirs(path)
 			vim.schedule(cb)
 		else
-			utils.confirm("Unable to remove, force? (might contain submodules or uncommitted changes)", function(ans)
-				if ans == "Yes" then
-					table.insert(cmdline, "--force")
-					cmd.run_async(cmdline, function(ret, _, _)
-						if ret == 0 then
-							utils.rm_dangling_dirs(path)
-							vim.schedule(cb)
+			vim.schedule(function()
+				utils.confirm(
+					"Unable to remove, force? (might contain submodules or uncommitted changes)",
+					function(ans)
+						if ans == "Yes" then
+							table.insert(cmdline, "--force")
+							cmd.run_async(cmdline, function(ret, _, _)
+								if ret == 0 then
+									utils.rm_dangling_dirs(path)
+									vim.schedule(cb)
+								end
+							end)
 						end
-					end)
-				end
+					end
+				)
 			end)
 		end
 	end)
