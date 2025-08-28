@@ -7,11 +7,9 @@ local Job = require("plenary.job")
 local create_job = function(cmd)
 	local cmd_str = table.concat(cmd, " ")
 	log.debug("creating job:", cmd_str)
-	local command = cmd[1]
-	table.remove(cmd, 1)
 	return Job:new({
-		command = command,
-		args = cmd,
+		command = cmd[1],
+		args = { unpack(cmd, 2) },
 		cwd = vim.uv.cwd(),
 		on_exit = function(j, ret)
 			log.debug("exit code:", ret)
