@@ -30,6 +30,7 @@ M.close = function(picker)
 end
 
 M.list = function(cur_file)
+	state.new = {}
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return

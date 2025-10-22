@@ -35,6 +35,7 @@ M.close = function(prompt_bufnr)
 end
 
 M.list = function(cur_file)
+	state.new = {}
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
