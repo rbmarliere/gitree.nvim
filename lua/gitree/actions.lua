@@ -260,9 +260,6 @@ M.select = function(opts)
 	picker.close(opts)
 	log.info("Selecting worktree...")
 	utils.change_dir(tree.path)
-	if config.options.on_select and type(config.options.on_select) == "function" then
-		config.options.on_select()
-	end
 end
 
 M.files = function(opts)

@@ -1,5 +1,6 @@
 local M = {}
 
+local config = require("gitree.config")
 local log = require("gitree.log")
 local state = require("gitree.state")
 
@@ -10,6 +11,9 @@ M.change_dir = function(worktree_path)
 		vim.api.nvim_set_current_dir(worktree_path)
 		vim.api.nvim_command("clearjumps")
 		log.info("Changed directory to " .. worktree_path)
+		if config.options.on_select and type(config.options.on_select) == "function" then
+			config.options.on_select()
+		end
 	end)
 end
 
