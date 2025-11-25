@@ -75,6 +75,7 @@ end
 
 M.git_all_branches = function()
 	return Snacks.picker.git_branches({
+		layout = { preview = false },
 		all = true,
 		confirm = actions.pick_upstream_branch,
 	})
@@ -82,6 +83,7 @@ end
 
 M.git_remote_branches = function()
 	return Snacks.picker.git_branches({
+		layout = { preview = false },
 		all = true,
 		confirm = actions.pick_remote_branch,
 		pattern = "remotes/",
@@ -90,6 +92,7 @@ end
 
 M.git_local_branches = function()
 	return Snacks.picker.git_branches({
+		layout = { preview = false },
 		confirm = actions.pick_local_branch,
 	})
 end
