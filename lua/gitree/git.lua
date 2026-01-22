@@ -164,6 +164,7 @@ M.add_worktree = function(opts, cb)
 	local path = opts.path
 	local commit = opts.commit
 	local branch = opts.branch
+	local remote = opts.remote
 	local upstream = opts.upstream
 	local cmdline = { "git", "worktree", "add" }
 
@@ -199,7 +200,7 @@ M.add_worktree = function(opts, cb)
 		if not M.has_branch(branch) then
 			table.insert(cmdline, "-b")
 			finish(cmdline)
-		elseif upstream ~= nil or commit ~= nil then
+		elseif not remote and (upstream ~= nil or commit ~= nil) then
 			utils.confirm("Reset existing branch?", function(ans)
 				if ans == "Yes" then
 					table.insert(cmdline, "-B")
