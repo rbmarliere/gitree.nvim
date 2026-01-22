@@ -59,6 +59,13 @@ M.pick_remote_branch = function(opts)
 	s.new.remote = true
 	s.new.upstream = entry
 	utils.input("New branch name", string.gsub(entry, "/", "_"), function(ans)
+		for _, tree in ipairs(s.worktrees) do
+			if tree.branch == ans then
+				log.warn("Branch", ans, "already in use in", tree.path)
+				s.new = {}
+				return false
+			end
+		end
 		s.new.branch = ans
 		M.add()
 	end)
