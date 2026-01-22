@@ -58,7 +58,7 @@ M.pick_remote_branch = function(opts)
 	picker.close(opts)
 	s.new.remote = true
 	s.new.upstream = entry
-	utils.input("New branch name", string.gsub(entry, "/", "_"), function(ans)
+	utils.input("New branch name", entry:gsub("^[^/]+/", ""), function(ans)
 		for _, tree in ipairs(s.worktrees) do
 			if tree.branch == ans then
 				log.warn("Branch", ans, "already in use in", tree.path)
@@ -147,9 +147,7 @@ M.add = function()
 
 	if s.new.path == nil then
 		local suffix = s.main_worktree_path:absolute() .. "/"
-		if s.new.remote and s.new.upstream then
-			suffix = string.format("%s%s", suffix, s.new.upstream)
-		elseif s.new.branch then
+		if s.new.branch then
 			suffix = string.format("%s%s", suffix, s.new.branch)
 		end
 		utils.input("Path to worktree", suffix, function(ans)
