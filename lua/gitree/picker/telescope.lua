@@ -51,7 +51,7 @@ M.list = function(cur_file)
 	else
 		keys = function(_, map)
 			telescope_actions.select_default:replace(actions.select)
-			map({ "i", "n" }, "<M-a>", actions.add)
+			map({ "i", "n" }, "<M-a>", actions.start_add)
 			map({ "i", "n" }, "<M-r>", actions.remove)
 			map({ "i", "n" }, "<M-m>", actions.move)
 			map({ "i", "n" }, "<M-p>", actions.files)

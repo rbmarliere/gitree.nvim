@@ -64,7 +64,7 @@ M.list = function(cur_file)
 			},
 		},
 		actions = {
-			add = actions.add,
+			add = actions.start_add,
 			move = actions.move,
 			remove = actions.remove,
 			files = actions.files,

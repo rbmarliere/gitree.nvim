@@ -8,6 +8,17 @@ local utils = require("gitree.utils")
 local picker = require("gitree.picker")
 
 local Path = require("plenary.path")
+local add_picker = nil
+local reset_add = function()
+	add_picker = nil
+	s.new = {}
+end
+
+M.start_add = function(opts)
+	reset_add()
+	add_picker = opts
+	M.add()
+end
 
 M.pick_upstream_branch = function(opts)
 	local entry = picker.current_branch(opts)
@@ -41,7 +52,7 @@ M.pick_local_branch = function(opts)
 	for _, tree in ipairs(s.worktrees) do
 		if tree.branch == entry then
 			log.warn("Branch", entry, "already in use in", tree.path)
-			s.new = {}
+			reset_add()
 			return false
 		end
 	end
@@ -62,7 +73,7 @@ M.pick_remote_branch = function(opts)
 		for _, tree in ipairs(s.worktrees) do
 			if tree.branch == ans then
 				log.warn("Branch", ans, "already in use in", tree.path)
-				s.new = {}
+				reset_add()
 				return false
 			end
 		end
@@ -152,7 +163,7 @@ M.add = function()
 		end
 		utils.input("Path to worktree", suffix, function(ans)
 			if not utils.is_worktree_path_valid(ans) then
-				s.new = {}
+				reset_add()
 				return
 			end
 			s.new.path = Path:new(ans):absolute()
@@ -162,6 +173,9 @@ M.add = function()
 	end
 
 	log.info("Adding worktree...")
+	if add_picker ~= nil then
+		picker.close(add_picker)
+	end
 	git.add_worktree(s.new, function(ret, _, _)
 		if ret == 0 then
 			utils.change_dir(s.new.path)
@@ -169,7 +183,7 @@ M.add = function()
 				config.options.on_add()
 			end
 		end
-		s.new = {}
+		reset_add()
 	end)
 end
 
