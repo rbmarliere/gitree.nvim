@@ -217,21 +217,25 @@ M.move = function(opts)
 			if not ok then
 				return
 			end
-			if was_current then
-				utils.change_dir(new_path)
+			local on_moved = function()
+				if tree.detached then
+					log.info("Moved worktree")
+				else
+					utils.confirm(string.format("Moved worktree, rename branch %s?", tree.branch), function(ans)
+						if ans == "Yes" then
+							utils.input("New branch name", tree.branch, function(new_branch)
+								if git.rename_branch(tree.branch, new_branch) then
+									log.info("Renamed branch")
+								end
+							end)
+						end
+					end)
+				end
 			end
-			if tree.detached then
-				log.info("Moved worktree")
+			if was_current then
+				utils.change_dir(new_path, on_moved)
 			else
-				utils.confirm(string.format("Moved worktree, rename branch %s?", tree.branch), function(ans)
-					if ans == "Yes" then
-						utils.input("New branch name", tree.branch, function(new_branch)
-							if git.rename_branch(tree.branch, new_branch) then
-								log.info("Renamed branch")
-							end
-						end)
-					end
-				end)
+				on_moved()
 			end
 		end)
 	end)
