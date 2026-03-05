@@ -173,17 +173,21 @@ M.add = function()
 	end
 
 	log.info("Adding worktree...")
-	if add_picker ~= nil then
-		picker.close(add_picker)
+	local new_worktree = vim.deepcopy(s.new)
+	local worktree_path = new_worktree.path
+	local picker_to_close = add_picker
+	if picker_to_close ~= nil then
+		picker.close(picker_to_close)
 	end
-	git.add_worktree(s.new, function(ret, _, _)
+	reset_add()
+	git.add_worktree(new_worktree, function(ret, _, _)
 		if ret == 0 then
-			utils.change_dir(s.new.path)
-			if config.options.on_add and type(config.options.on_add) == "function" then
-				config.options.on_add()
-			end
+			utils.change_dir(worktree_path, function()
+				if config.options.on_add and type(config.options.on_add) == "function" then
+					config.options.on_add()
+				end
+			end)
 		end
-		reset_add()
 	end)
 end
 
