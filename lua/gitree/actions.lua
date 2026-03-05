@@ -207,9 +207,13 @@ M.move = function(opts)
 			return
 		end
 		new_path = Path:new(new_path):absolute()
+		local was_current = tree.path == vim.uv.cwd()
 		log.info("Moving worktree...")
-		if git.move_worktree(tree, new_path) then
-			if tree.path == vim.uv.cwd() then
+		git.move_worktree(tree, new_path, function(ok)
+			if not ok then
+				return
+			end
+			if was_current then
 				utils.change_dir(new_path)
 			end
 			if tree.detached then
@@ -225,7 +229,7 @@ M.move = function(opts)
 					end
 				end)
 			end
-		end
+		end)
 	end)
 end
 

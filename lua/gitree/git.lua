@@ -258,61 +258,72 @@ M.remove_worktree = function(path, cb)
 	end)
 end
 
-M.move_worktree = function(tree, dest)
+M.move_worktree = function(tree, dest, cb)
+	cb = cb or function() end
 	-- TODO: special case `git worktree move foo foo/bar`
 	if dest == nil then
 		log.warn("New worktree path can't be nil")
-		return false
+		cb(false)
+		return
 	else
 		dest = Path:new(dest)
 	end
 
 	if not utils.is_worktree_path_valid(dest) then
-		return false
+		cb(false)
+		return
 	end
 
 	-- git fails if required subdirectory is not found
 	-- e.g. `git worktree move foo nonexistantdir/foo
 	vim.system({ "mkdir", "-p", dest:parent():absolute() }):wait()
 
+	local finish = function(old_path)
+		utils.rm_dangling_dirs(old_path)
+		tree.path = dest:absolute()
+		cb(true)
+	end
+
 	local ret, _, _
 	if M.has_submodule(tree) then
 		utils.confirm("Worktree has submodules, force move? (deinit && mv && repair && init)", function(ans)
 			if ans == "Yes" then
 				ret, _ = cmd.run({ "git", "-C", tree.path, "submodule", "deinit", "--all" })
-				if not ret then
+				if ret ~= 0 then
 					log.warn("Unable to deinit modules")
-					return false
+					cb(false)
+					return
 				end
 				ret = vim.fn.rename(tree.path, dest:absolute())
-				if not ret then
+				if ret ~= 0 then
 					log.warn(string.format("Unable to rename directory %s to %s", tree.path, dest:absolute()))
-					return false
+					cb(false)
+					return
 				end
 				ret, _ = cmd.run({ "git", "-C", dest:absolute(), "worktree", "repair" })
-				if not ret then
+				if ret ~= 0 then
 					log.warn("Unable to repair worktree")
-					return false
+					cb(false)
+					return
 				end
 				ret, _ = cmd.run({ "git", "-C", dest:absolute(), "submodule", "update", "--init", "--recursive" })
-				if not ret then
+				if ret ~= 0 then
 					log.warn("Unable to re-init submodules")
-					return false
+					cb(false)
+					return
 				end
-				utils.rm_dangling_dirs(tree.path)
-				tree.path = dest:absolute()
-				return true
+				finish(tree.path)
 			else
-				return false
+				cb(false)
 			end
 		end)
 	else
-		ret, _ = cmd.run({ "git", "worktree", "move", tree.path, dest:absolute() })
+		ret, _ = cmd.run({ "git", "-C", state.main_worktree_path:absolute(), "worktree", "move", tree.path, dest:absolute() })
 		if ret ~= 0 then
-			return false
+			cb(false)
+			return
 		end
-		utils.rm_dangling_dirs(tree.path)
-		return true
+		finish(tree.path)
 	end
 end
 
