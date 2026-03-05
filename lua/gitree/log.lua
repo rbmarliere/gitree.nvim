@@ -1,6 +1,15 @@
 local config = require("gitree.config")
 
 local logger = nil
+local notify_levels = {
+	info = vim.log.levels.INFO,
+	warn = vim.log.levels.WARN,
+	error = vim.log.levels.ERROR,
+}
+
+local notify = function(msg, mode_name)
+	vim.notify_once(msg, notify_levels[mode_name])
+end
 
 local get_logger = function()
 	if not logger then
@@ -8,15 +17,21 @@ local get_logger = function()
 			plugin = "gitree",
 			level = config.options.log_level,
 			use_console = false,
-			fmt_msg = function(is_console, mode_name, src_path, src_line, msg)
-				local nameupper = mode_name:upper()
-				local lineinfo = src_path .. ":" .. src_line
-				if mode_name == "info" or mode_name == "warn" or mode_name == "error" then
-					vim.notify_once(msg, mode_name)
-				end
-				return string.format("[%-6s%s] %s: %s\n", nameupper, os.date("%Y/%m/%d %H:%M:%S"), lineinfo, msg)
-			end,
-		})
+				fmt_msg = function(is_console, mode_name, src_path, src_line, msg)
+					local nameupper = mode_name:upper()
+					local lineinfo = src_path .. ":" .. src_line
+					if notify_levels[mode_name] then
+						if vim.in_fast_event() then
+							vim.schedule(function()
+								notify(msg, mode_name)
+							end)
+						else
+							notify(msg, mode_name)
+						end
+					end
+					return string.format("[%-6s%s] %s: %s\n", nameupper, os.date("%Y/%m/%d %H:%M:%S"), lineinfo, msg)
+				end,
+			})
 	end
 	return logger
 end
