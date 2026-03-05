@@ -219,8 +219,22 @@ M.delete_branch = function(branch)
 end
 
 M.remove_worktree = function(path, cb)
-	local cmdline = { "git", "worktree", "remove", path }
-	cmd.run_async(cmdline, function(ret, _, _)
+	local remove_cmdline = function(force)
+		local cmdline = {
+			"git",
+			"-C",
+			state.main_worktree_path:absolute(),
+			"worktree",
+			"remove",
+		}
+		if force then
+			table.insert(cmdline, "--force")
+		end
+		table.insert(cmdline, path)
+		return cmdline
+	end
+
+	cmd.run_async(remove_cmdline(false), function(ret, _, _)
 		if ret == 0 then
 			utils.rm_dangling_dirs(path)
 			vim.schedule(cb)
@@ -230,8 +244,7 @@ M.remove_worktree = function(path, cb)
 					"Unable to remove, force? (might contain submodules or uncommitted changes)",
 					function(ans)
 						if ans == "Yes" then
-							table.insert(cmdline, "--force")
-							cmd.run_async(cmdline, function(ret, _, _)
+							cmd.run_async(remove_cmdline(true), function(ret, _, _)
 								if ret == 0 then
 									utils.rm_dangling_dirs(path)
 									vim.schedule(cb)

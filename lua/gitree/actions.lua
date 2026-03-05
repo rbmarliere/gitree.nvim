@@ -241,12 +241,7 @@ M.remove = function(opts)
 				log.warn("Refusing to remove main worktree")
 				return
 			end
-			picker.close(opts)
-			if tree.path == vim.uv.cwd() then
-				utils.change_dir(s.main_worktree_path:absolute())
-			end
-			log.info("Removing worktree...")
-			git.remove_worktree(tree.path, function()
+			local on_removed = function()
 				if tree.detached then
 					log.info("Removed worktree")
 				else
@@ -258,7 +253,16 @@ M.remove = function(opts)
 						end
 					end)
 				end
-			end)
+			end
+			local start_remove = function()
+				log.info("Removing worktree...")
+				git.remove_worktree(tree.path, on_removed)
+			end
+			picker.close(opts)
+			if tree.path == vim.uv.cwd() then
+				utils.change_dir(s.main_worktree_path:absolute())
+			end
+			vim.schedule(start_remove)
 		end
 	end)
 end
