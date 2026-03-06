@@ -8,7 +8,7 @@ local notify_levels = {
 }
 
 local notify = function(msg, mode_name)
-	vim.notify_once(msg, notify_levels[mode_name])
+	vim.notify(msg, notify_levels[mode_name])
 end
 
 local get_logger = function()
