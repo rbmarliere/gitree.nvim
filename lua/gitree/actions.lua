@@ -333,7 +333,11 @@ M.select_file = function(opts)
 		return
 	end
 	picker.close(opts)
-	vim.cmd(string.format("vsplit %s/%s", tree.path, s.target_path))
+	local path = vim.fs.normalize(tree.path .. "/" .. s.target_path)
+	local buf = vim.fn.bufadd(path)
+	vim.fn.bufload(buf)
+	vim.bo[buf].buflisted = true
+	vim.api.nvim_win_set_buf(0, buf)
 	s.target_path = nil
 end
 
