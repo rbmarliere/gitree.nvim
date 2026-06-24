@@ -3,6 +3,6 @@ local M = {}
 M.worktrees = nil
 M.main_worktree_path = nil
 M.new = {}
-M.cur_file = nil
+M.target_path = nil
 
 return M

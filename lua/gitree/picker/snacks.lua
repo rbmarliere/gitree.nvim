@@ -29,18 +29,31 @@ M.close = function(picker)
 	picker:close()
 end
 
-M.list = function(cur_file)
+M.list = function(opts)
 	state.new = {}
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
 	end
+	opts = opts or {}
 
 	local confirm
 	local keys = {}
-	if cur_file then
-		state.cur_file = cur_file
-		confirm = actions.select_file
+	if opts.target_path ~= nil or opts.handler ~= nil then
+		state.target_path = opts.target_path
+		if opts.handler then
+			confirm = function(picker)
+				local tree = M.current(picker)
+				if tree == nil then
+					log.warn("No worktree selected")
+					return
+				end
+				M.close(picker)
+				opts.handler(tree, opts.target_path)
+			end
+		else
+			confirm = actions.select_file
+		end
 	else
 		confirm = actions.select
 		keys = {

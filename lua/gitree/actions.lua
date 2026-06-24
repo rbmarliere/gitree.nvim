@@ -333,8 +333,8 @@ M.select_file = function(opts)
 		return
 	end
 	picker.close(opts)
-	vim.cmd(string.format("vsplit %s/%s", tree.path, s.cur_file))
-	s.cur_file = nil
+	vim.cmd(string.format("vsplit %s/%s", tree.path, s.target_path))
+	s.target_path = nil
 end
 
 return M

@@ -34,18 +34,30 @@ M.close = function(prompt_bufnr)
 	telescope_actions.close(prompt_bufnr)
 end
 
-M.list = function(cur_file)
+M.list = function(opts)
 	state.new = {}
 	state.worktrees = git.get_worktrees()
 	if not state.worktrees then
 		return
 	end
+	opts = opts or {}
 
 	local keys
-	if cur_file then
-		state.cur_file = cur_file
+	if opts.target_path ~= nil or opts.handler ~= nil then
+		state.target_path = opts.target_path
 		keys = function(_, _)
-			telescope_actions.select_default:replace(actions.select_file)
+			if opts.handler then
+				telescope_actions.select_default:replace(function(prompt_bufnr)
+					local tree = M.current(prompt_bufnr)
+					if tree == nil then
+						return
+					end
+					M.close(prompt_bufnr)
+					opts.handler(tree, opts.target_path)
+				end)
+			else
+				telescope_actions.select_default:replace(actions.select_file)
+			end
 			return true
 		end
 	else

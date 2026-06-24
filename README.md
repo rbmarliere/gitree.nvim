@@ -38,13 +38,21 @@ return {
       end,
       desc = "List worktrees",
     },
-    {
-      "<Leader>gW",
-      function()
-        require("telescope").extensions.gitree.list(vim.fn.expand("%:."))
-      end,
-      desc = "Open current file in another worktree",
-    },
+	{
+	  "<Leader>gW",
+	  function()
+		-- example: open current file in another worktree
+		require("telescope").extensions.gitree.list({ target_path = vim.fn.expand("%:.") })
+		-- or pass a handler to customize how the selected worktree is opened
+		-- require("gitree.picker.snacks").list({
+		-- 	target_path = vim.fn.expand("%:."),
+		-- 	handler = function(tree, target_path)
+		-- 		vim.notify(tree.path .. "/" .. target_path)
+		-- 	end,
+		-- })
+	  end,
+	  desc = "Open current file in another worktree",
+	},
   },
   init = function()
     require("telescope").setup({
@@ -83,22 +91,6 @@ return {
   dependencies = {
     "nvim-lua/plenary.nvim",
     "folke/snacks.nvim",
-  },
-  keys = {
-    {
-      "<Leader>gw",
-      function()
-        require("gitree.picker.snacks").list()
-      end,
-      desc = "List worktrees",
-    },
-    {
-      "<Leader>gW",
-      function()
-        require("gitree.picker.snacks").list(vim.fn.expand("%:."))
-      end,
-      desc = "Open current file in another worktree",
-    },
   },
   opts = {
     backend = "snacks",
